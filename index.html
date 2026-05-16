@@ -497,45 +497,194 @@ tr:nth-child(even) td { background:var(--surface2); }
     └── BallisticDebugHUD.h/.cpp
   </div>
   <hr>
-  <h2>Mermaid Graph</h2>
-  <p style="font-size:13px;">Paste into Obsidian (fenced <code>mermaid</code> block) or <a href="https://mermaid.live" target="_blank">mermaid.live</a>.</p>
-<pre>
-```mermaid
-flowchart TD
-  subgraph INPUT["Client Input"]
-    PI["APlayerController / Fire Action"] --> WC["UWeaponComponent"]
-  end
-  subgraph DATA["Data Assets"]
-    AD["UAmmoData"]
-    MD["UMaterialPenetrationData"]
-  end
-  subgraph SERVER["Server Simulation"]
-    BS["UBallisticSimulator"]
-    EM["AEnvironmentManager"]
-    PR["UPenetrationResolver"]
-    HIT["FBallisticImpact"]
-  end
-  subgraph PREDICT["Client Prediction"]
-    LT["Local Line Trace"] --> PH["Predicted Hit"]
-  end
-  subgraph OUT["Output"]
-    MC["MulticastImpact()"]
-    VFX["Impact VFX"]
-    HUD["ABallisticDebugHUD"]
-  end
-  WC -->|reads| AD
-  WC -->|ServerFire RPC| SERVER
-  WC --> LT
-  PH -->|log delta| HUD
-  BS -->|reads| EM
-  BS -->|on hit| PR
-  PR -->|reads| MD
-  PR --> HIT
-  HIT --> MC
-  MC --> VFX
-  MC -->|server result| HUD
-  BS -->|path points| HUD
-```</pre>
+  <h2>Architecture Diagram</h2>
+  <div style="background:var(--surface);border:1px solid var(--border);border-radius:4px;padding:20px;overflow-x:auto;">
+    <svg viewBox="0 0 860 620" xmlns="http://www.w3.org/2000/svg" style="width:100%;min-width:600px;font-family:'IBM Plex Mono',monospace;">
+      <defs>
+        <marker id="arr" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0,8 3,0 6" fill="#8a8782"/>
+        </marker>
+        <marker id="arr-accent" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0,8 3,0 6" fill="#c4310c"/>
+        </marker>
+        <marker id="arr-blue" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0,8 3,0 6" fill="#1a4fa3"/>
+        </marker>
+        <marker id="arr-green" markerWidth="8" markerHeight="6" refX="7" refY="3" orient="auto">
+          <polygon points="0 0,8 3,0 6" fill="#1a6b38"/>
+        </marker>
+      </defs>
+
+      <!-- ── GROUP: CLIENT INPUT ─────────────────── -->
+      <rect x="10" y="10" width="200" height="110" rx="4" fill="#f0efe9" stroke="#dddbd3" stroke-width="1"/>
+      <text x="20" y="28" font-size="8" fill="#c4310c" letter-spacing="2" text-transform="uppercase">CLIENT INPUT</text>
+
+      <!-- PlayerController -->
+      <rect x="24" y="36" width="168" height="32" rx="3" fill="#1a1917" stroke="none"/>
+      <text x="108" y="50" font-size="10" fill="#c8d4e8" text-anchor="middle">APlayerController</text>
+      <text x="108" y="62" font-size="9" fill="#6a8fbf" text-anchor="middle">Fire Input Action</text>
+
+      <!-- WeaponComponent -->
+      <rect x="24" y="76" width="168" height="32" rx="3" fill="#1a1917" stroke="none"/>
+      <text x="108" y="90" font-size="10" fill="#c8d4e8" text-anchor="middle">UWeaponComponent</text>
+      <text x="108" y="102" font-size="9" fill="#6a8fbf" text-anchor="middle">UActorComponent</text>
+
+      <!-- arrow: PlayerController → WeaponComponent -->
+      <line x1="108" y1="68" x2="108" y2="75" stroke="#8a8782" stroke-width="1.2" marker-end="url(#arr)"/>
+
+      <!-- ── GROUP: DATA ASSETS ──────────────────── -->
+      <rect x="630" y="10" width="220" height="110" rx="4" fill="#f0efe9" stroke="#dddbd3" stroke-width="1"/>
+      <text x="640" y="28" font-size="8" fill="#9a6800" letter-spacing="2">DATA ASSETS</text>
+
+      <rect x="644" y="36" width="192" height="32" rx="3" fill="#1a1917" stroke="none"/>
+      <text x="740" y="50" font-size="10" fill="#c8d4e8" text-anchor="middle">UAmmoData</text>
+      <text x="740" y="62" font-size="9" fill="#d4a84b" text-anchor="middle">Mass · Cd · Velocity · Area</text>
+
+      <rect x="644" y="76" width="192" height="32" rx="3" fill="#1a1917" stroke="none"/>
+      <text x="740" y="90" font-size="10" fill="#c8d4e8" text-anchor="middle">UMaterialPenetrationData</text>
+      <text x="740" y="102" font-size="9" fill="#d4a84b" text-anchor="middle">Density · Thickness · Friction</text>
+
+      <!-- ── RPC BOUNDARY ─────────────────────────── -->
+      <rect x="240" y="150" width="180" height="36" rx="3" fill="rgba(196,49,12,0.08)" stroke="rgba(196,49,12,0.3)" stroke-width="1" stroke-dasharray="4,3"/>
+      <text x="330" y="164" font-size="9" fill="#c4310c" text-anchor="middle" font-weight="bold">ServerFire() RPC</text>
+      <text x="330" y="177" font-size="8" fill="#8a8782" text-anchor="middle">Reliable · WithValidation</text>
+
+      <!-- ── GROUP: SERVER SIMULATION ───────────── -->
+      <rect x="10" y="210" width="600" height="270" rx="4" fill="rgba(26,107,56,0.04)" stroke="rgba(26,107,56,0.25)" stroke-width="1"/>
+      <text x="20" y="228" font-size="8" fill="#1a6b38" letter-spacing="2">SERVER SIMULATION</text>
+
+      <!-- BallisticSimulator -->
+      <rect x="24" y="236" width="200" height="50" rx="3" fill="#1a1917" stroke="rgba(26,107,56,0.4)" stroke-width="1"/>
+      <text x="124" y="254" font-size="10" fill="#c8d4e8" text-anchor="middle">UBallisticSimulator</text>
+      <text x="124" y="267" font-size="9" fill="#6ee7b7" text-anchor="middle">Long-Step Loop</text>
+      <text x="124" y="279" font-size="8" fill="#4a9a6a" text-anchor="middle">Drag · Gravity · AirDensity</text>
+
+      <!-- EnvironmentManager -->
+      <rect x="250" y="236" width="180" height="50" rx="3" fill="#1a1917" stroke="rgba(26,107,56,0.4)" stroke-width="1"/>
+      <text x="340" y="254" font-size="10" fill="#c8d4e8" text-anchor="middle">AEnvironmentManager</text>
+      <text x="340" y="267" font-size="9" fill="#6ee7b7" text-anchor="middle">AirDensity · Wind · Temp</text>
+      <text x="340" y="279" font-size="8" fill="#4a9a6a" text-anchor="middle">Replicated AActor</text>
+
+      <!-- PenetrationResolver -->
+      <rect x="24" y="310" width="200" height="50" rx="3" fill="#1a1917" stroke="rgba(26,107,56,0.4)" stroke-width="1"/>
+      <text x="124" y="328" font-size="10" fill="#c8d4e8" text-anchor="middle">UPenetrationResolver</text>
+      <text x="124" y="341" font-size="9" fill="#6ee7b7" text-anchor="middle">Angle · Energy · ExitVel</text>
+      <text x="124" y="353" font-size="8" fill="#4a9a6a" text-anchor="middle">Ricochet Decision</text>
+
+      <!-- FBallisticImpact -->
+      <rect x="250" y="310" width="180" height="50" rx="3" fill="rgba(196,49,12,0.08)" stroke="rgba(196,49,12,0.3)" stroke-width="1"/>
+      <text x="340" y="328" font-size="10" fill="#c4310c" text-anchor="middle">FBallisticImpact</text>
+      <text x="340" y="341" font-size="9" fill="#8a8782" text-anchor="middle">HitLoc · Normal · Velocities</text>
+      <text x="340" y="353" font-size="8" fill="#8a8782" text-anchor="middle">Penetrated · MaterialRef</text>
+
+      <!-- Structs note -->
+      <rect x="455" y="236" width="140" height="124" rx="3" fill="rgba(26,79,163,0.06)" stroke="rgba(26,79,163,0.2)" stroke-width="1"/>
+      <text x="525" y="253" font-size="8" fill="#1a4fa3" text-anchor="middle" letter-spacing="1">CORE STRUCTS</text>
+      <rect x="465" y="260" width="120" height="34" rx="2" fill="#1a1917"/>
+      <text x="525" y="274" font-size="9" fill="#c8d4e8" text-anchor="middle">FBallisticProjectile</text>
+      <text x="525" y="286" font-size="8" fill="#6a8fbf" text-anchor="middle">Pos · Vel · Energy · Steps</text>
+      <rect x="465" y="302" width="120" height="20" rx="2" fill="rgba(26,79,163,0.15)"/>
+      <text x="525" y="315" font-size="8" fill="#1a4fa3" text-anchor="middle">Updated every 5ms step</text>
+      <text x="525" y="340" font-size="8" fill="#8a8782" text-anchor="middle">StepSizeSeconds = 0.005f</text>
+      <text x="525" y="353" font-size="8" fill="#8a8782" text-anchor="middle">MaxSteps = 2000</text>
+
+      <!-- ── GROUP: CLIENT PREDICTION ───────────── -->
+      <rect x="10" y="500" width="280" height="90" rx="4" fill="rgba(26,79,163,0.05)" stroke="rgba(26,79,163,0.25)" stroke-width="1"/>
+      <text x="20" y="518" font-size="8" fill="#1a4fa3" letter-spacing="2">CLIENT PREDICTION</text>
+
+      <rect x="24" y="526" width="120" height="32" rx="3" fill="#1a1917" stroke="none"/>
+      <text x="84" y="540" font-size="10" fill="#c8d4e8" text-anchor="middle">Local Line Trace</text>
+      <text x="84" y="552" font-size="9" fill="#6a8fbf" text-anchor="middle">Immediate</text>
+
+      <rect x="156" y="526" width="120" height="32" rx="3" fill="#1a1917" stroke="none"/>
+      <text x="216" y="540" font-size="10" fill="#c8d4e8" text-anchor="middle">Predicted Hit</text>
+      <text x="216" y="552" font-size="9" fill="#6a8fbf" text-anchor="middle">No physics</text>
+
+      <!-- ── GROUP: OUTPUT ───────────────────────── -->
+      <rect x="480" y="500" width="370" height="110" rx="4" fill="#f0efe9" stroke="#dddbd3" stroke-width="1"/>
+      <text x="490" y="518" font-size="8" fill="#8a8782" letter-spacing="2">OUTPUT</text>
+
+      <rect x="494" y="526" width="140" height="32" rx="3" fill="#1a1917" stroke="none"/>
+      <text x="564" y="540" font-size="10" fill="#c8d4e8" text-anchor="middle">MulticastImpact()</text>
+      <text x="564" y="552" font-size="9" fill="#6a8fbf" text-anchor="middle">Replicated → all clients</text>
+
+      <rect x="494" y="566" width="60" height="28" rx="3" fill="#1a1917" stroke="none"/>
+      <text x="524" y="578" font-size="9" fill="#c8d4e8" text-anchor="middle">Impact</text>
+      <text x="524" y="589" font-size="9" fill="#6a8fbf" text-anchor="middle">VFX</text>
+
+      <rect x="648" y="526" width="190" height="68" rx="3" fill="#1a1917" stroke="rgba(196,49,12,0.3)" stroke-width="1"/>
+      <text x="743" y="543" font-size="10" fill="#c8d4e8" text-anchor="middle">ABallisticDebugHUD</text>
+      <text x="743" y="556" font-size="9" fill="#f59e6b" text-anchor="middle">Trajectory Path Draw</text>
+      <text x="743" y="568" font-size="9" fill="#f59e6b" text-anchor="middle">Server vs Client Delta</text>
+      <text x="743" y="580" font-size="9" fill="#f59e6b" text-anchor="middle">Velocity / Energy Log</text>
+
+      <!-- ═══ ARROWS ═══════════════════════════════ -->
+
+      <!-- WeaponComponent → RPC -->
+      <line x1="192" y1="130" x2="290" y2="150" stroke="#c4310c" stroke-width="1.5" marker-end="url(#arr-accent)"/>
+      <text x="230" y="147" font-size="8" fill="#8a8782">ServerFire</text>
+
+      <!-- WeaponComponent reads UAmmoData -->
+      <line x1="192" y1="88" x2="644" y2="58" stroke="#9a6800" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arr)"/>
+      <text x="430" y="62" font-size="8" fill="#8a8782">reads</text>
+
+      <!-- RPC → BallisticSimulator -->
+      <line x1="330" y1="186" x2="200" y2="250" stroke="#c4310c" stroke-width="1.5" marker-end="url(#arr-accent)"/>
+
+      <!-- BallisticSimulator reads EnvironmentManager -->
+      <line x1="224" y1="256" x2="250" y2="256" stroke="#1a6b38" stroke-width="1.2" marker-end="url(#arr-green)"/>
+      <text x="232" y="250" font-size="8" fill="#8a8782">reads</text>
+
+      <!-- BallisticSimulator → PenetrationResolver -->
+      <line x1="124" y1="286" x2="124" y2="310" stroke="#1a6b38" stroke-width="1.2" marker-end="url(#arr-green)"/>
+      <text x="128" y="302" font-size="8" fill="#8a8782">on hit</text>
+
+      <!-- PenetrationResolver reads MaterialPenetrationData -->
+      <line x1="224" y1="335" x2="644" y2="92" stroke="#9a6800" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arr)"/>
+      <text x="600" y="150" font-size="8" fill="#8a8782">reads</text>
+
+      <!-- PenetrationResolver → FBallisticImpact -->
+      <line x1="224" y1="335" x2="250" y2="335" stroke="#c4310c" stroke-width="1.2" marker-end="url(#arr-accent)"/>
+
+      <!-- FBallisticImpact → MulticastImpact -->
+      <line x1="340" y1="360" x2="540" y2="526" stroke="#c4310c" stroke-width="1.5" marker-end="url(#arr-accent)"/>
+
+      <!-- MulticastImpact → VFX -->
+      <line x1="524" y1="558" x2="524" y2="566" stroke="#8a8782" stroke-width="1.2" marker-end="url(#arr)"/>
+
+      <!-- MulticastImpact → HUD -->
+      <line x1="634" y1="542" x2="648" y2="542" stroke="#8a8782" stroke-width="1.2" marker-end="url(#arr)"/>
+      <text x="636" y="536" font-size="8" fill="#8a8782">result</text>
+
+      <!-- BallisticSimulator → HUD (path points) -->
+      <line x1="224" y1="260" x2="760" y2="526" stroke="#8a8782" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#arr)"/>
+      <text x="640" y="420" font-size="8" fill="#8a8782">path points</text>
+
+      <!-- WeaponComponent → Local Line Trace -->
+      <line x1="108" y1="108" x2="84" y2="526" stroke="#1a4fa3" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arr-blue)"/>
+      <text x="50" y="340" font-size="8" fill="#8a8782">predict</text>
+
+      <!-- Local Trace → Predicted Hit -->
+      <line x1="144" y1="542" x2="156" y2="542" stroke="#1a4fa3" stroke-width="1.2" marker-end="url(#arr-blue)"/>
+
+      <!-- Predicted Hit → HUD (delta) -->
+      <line x1="276" y1="542" x2="648" y2="560" stroke="#1a4fa3" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#arr-blue)"/>
+      <text x="430" y="560" font-size="8" fill="#8a8782">log delta</text>
+
+      <!-- Legend -->
+      <rect x="10" y="598" width="840" height="18" rx="2" fill="none"/>
+      <line x1="20" y1="608" x2="50" y2="608" stroke="#c4310c" stroke-width="1.5" marker-end="url(#arr-accent)"/>
+      <text x="55" y="612" font-size="8" fill="#8a8782">Server-authoritative flow</text>
+      <line x1="200" y1="608" x2="230" y2="608" stroke="#1a6b38" stroke-width="1.2" marker-end="url(#arr-green)"/>
+      <text x="235" y="612" font-size="8" fill="#8a8782">Server internal</text>
+      <line x1="360" y1="608" x2="390" y2="608" stroke="#1a4fa3" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#arr-blue)"/>
+      <text x="395" y="612" font-size="8" fill="#8a8782">Client prediction</text>
+      <line x1="530" y1="608" x2="560" y2="608" stroke="#9a6800" stroke-width="1" stroke-dasharray="4,3" marker-end="url(#arr)"/>
+      <text x="565" y="612" font-size="8" fill="#8a8782">Data reads</text>
+      <line x1="660" y1="608" x2="690" y2="608" stroke="#8a8782" stroke-width="1" marker-end="url(#arr)"/>
+      <text x="695" y="612" font-size="8" fill="#8a8782">Output / replicated</text>
+    </svg>
+  </div>
 </div>
 
 <!-- ROADMAP -->
@@ -891,6 +1040,41 @@ flowchart TD
       </div>
     </div>
 
+    <!-- EXPORT / IMPORT -->
+    <div class="admin-section">
+      <div class="admin-section-title">Export &amp; Import — GitHub Pages Sync</div>
+      <p style="font-size:13px;color:var(--text-mid);margin-bottom:16px;">
+        Logs are stored in your browser. To publish them to GitHub Pages, export a JSON file, commit it to your repo as <code>devlogs.json</code> in the same folder as this HTML file, then anyone visiting the page will load it automatically.
+      </p>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;">
+        <!-- EXPORT -->
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:16px;">
+          <div style="font-family:var(--mono);font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;font-weight:700;">Step 1 — Export</div>
+          <p style="font-size:12px;color:var(--text-mid);margin-bottom:12px;">Downloads <code>devlogs.json</code> with all logs and progress state. Commit this file to your GitHub repo.</p>
+          <button class="btn btn-primary" onclick="exportJSON()">Download devlogs.json</button>
+        </div>
+
+        <!-- IMPORT -->
+        <div style="background:var(--surface2);border:1px solid var(--border);border-radius:4px;padding:16px;">
+          <div style="font-family:var(--mono);font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:2px;margin-bottom:10px;font-weight:700;">Import from File</div>
+          <p style="font-size:12px;color:var(--text-mid);margin-bottom:12px;">Load a previously exported <code>devlogs.json</code> into this browser. Replaces current local data.</p>
+          <label class="btn btn-ghost" style="cursor:pointer;">
+            Choose JSON file
+            <input type="file" accept=".json" id="import-file-input" style="display:none;" onchange="importJSON(this)">
+          </label>
+          <div id="import-confirm" style="font-family:var(--mono);font-size:11px;color:var(--green);margin-top:8px;display:none;">Imported successfully.</div>
+          <div id="import-error"   style="font-family:var(--mono);font-size:11px;color:var(--accent);margin-top:8px;display:none;">Invalid file.</div>
+        </div>
+      </div>
+
+      <div style="background:var(--blue-dim);border:1px solid rgba(26,79,163,0.2);border-radius:3px;padding:11px 14px;font-size:12px;color:var(--text-mid);">
+        <strong style="color:var(--blue);font-family:var(--mono);">GitHub Pages workflow:</strong>
+        After exporting, place <code>devlogs.json</code> next to <code>Ballistics_DevHub.html</code> in your repo and push.
+        The hub automatically fetches it on load — visitors will see your latest logs without any login.
+      </div>
+    </div>
+
     <!-- EXISTING -->
     <div class="admin-section">
       <div class="admin-section-title">Existing Entries</div>
@@ -1215,10 +1399,138 @@ function handleSecretClick() {
   }
 }
 
+// ── EXPORT JSON ───────────────────────────────────────
+function exportJSON() {
+  const data = {
+    logs:     getLogs(),
+    progress: getProgress(),
+    exported: new Date().toISOString(),
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'devlogs.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── IMPORT JSON ───────────────────────────────────────
+function importJSON(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.logs || !Array.isArray(data.logs)) throw new Error('bad format');
+      saveLogs(data.logs);
+      if (data.progress) storeProgress(data.progress);
+      applyProgress(getProgress());
+      renderAdminList();
+      renderDashboard();
+      populateProgressForm(getProgress());
+      document.getElementById('import-confirm').style.display = 'block';
+      document.getElementById('import-error').style.display   = 'none';
+      setTimeout(() => document.getElementById('import-confirm').style.display = 'none', 3000);
+    } catch(err) {
+      document.getElementById('import-error').style.display   = 'block';
+      document.getElementById('import-confirm').style.display = 'none';
+    }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// ── AUTO-FETCH devlogs.json (GitHub Pages) ────────────
+async function fetchRemoteLogs() {
+  try {
+    const res = await fetch('devlogs.json', { cache: 'no-cache' });
+    if (!res.ok) return; // file doesn't exist yet — fine
+    const data = await res.json();
+    if (!data.logs || !Array.isArray(data.logs)) return;
+    // Only load remote if local is empty (don't overwrite admin edits)
+    if (getLogs().length === 0) {
+      saveLogs(data.logs);
+      if (data.progress) storeProgress(data.progress);
+      applyProgress(getProgress());
+      renderDashboard();
+      renderLogs();
+    }
+  } catch(e) {
+    // Fetch failed (file missing or offline) — use localStorage silently
+  }
+}
+
+// ── EXPORT / IMPORT ───────────────────────────────────
+function exportJSON() {
+  const data = {
+    logs:     getLogs(),
+    progress: getProgress(),
+    exported: new Date().toISOString(),
+  };
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href     = url;
+  a.download = 'devlogs.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importJSON(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      const data = JSON.parse(e.target.result);
+      if (!data.logs || !Array.isArray(data.logs)) throw new Error('Invalid');
+      saveLogs(data.logs);
+      if (data.progress) storeProgress(data.progress);
+      document.getElementById('import-confirm').style.display = 'block';
+      document.getElementById('import-error').style.display   = 'none';
+      setTimeout(() => document.getElementById('import-confirm').style.display = 'none', 3000);
+      renderAdminList();
+      renderDashboard();
+      populateProgressForm(getProgress());
+    } catch(err) {
+      document.getElementById('import-error').style.display   = 'block';
+      document.getElementById('import-confirm').style.display = 'none';
+    }
+    input.value = '';
+  };
+  reader.readAsText(file);
+}
+
+// ── GITHUB PAGES AUTO-FETCH ───────────────────────────
+// Loads devlogs.json from same directory if it exists.
+// Local localStorage always takes priority so admin edits are not overwritten.
+async function fetchPublishedLogs() {
+  try {
+    const res = await fetch('./devlogs.json', { cache: 'no-cache' });
+    if (!res.ok) return;
+    const data = await res.json();
+    // Only load if localStorage is empty (visitor has no local data)
+    if (!localStorage.getItem(STORAGE_KEY) && data.logs && Array.isArray(data.logs)) {
+      saveLogs(data.logs);
+    }
+    if (!localStorage.getItem(PROGRESS_KEY) && data.progress) {
+      storeProgress(data.progress);
+    }
+    renderDashboard();
+    renderLogs();
+  } catch(e) {
+    // No devlogs.json found — silently ignore
+  }
+}
+
 // ── INIT ──────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  fetchPublishedLogs();
   applyProgress(getProgress());
   renderDashboard();
+  fetchRemoteLogs();
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
       document.getElementById('sidebar').classList.remove('open');
