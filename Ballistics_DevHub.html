@@ -1,0 +1,979 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ballistic Simulation System — Thesis Dev Hub</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;700&family=IBM+Plex+Sans:wght@300;400;500;600&display=swap');
+
+:root {
+  --bg:          #f5f4f0;
+  --surface:     #ffffff;
+  --surface2:    #f0efe9;
+  --border:      #dddbd3;
+  --sidebar-bg:  #1a1917;
+  --sidebar-bdr: #2a2926;
+  --accent:      #c4310c;
+  --accent-dim:  rgba(196,49,12,0.09);
+  --blue:        #1a4fa3;
+  --blue-dim:    rgba(26,79,163,0.08);
+  --green:       #1a6b38;
+  --green-dim:   rgba(26,107,56,0.08);
+  --amber:       #9a6800;
+  --amber-dim:   rgba(154,104,0,0.08);
+  --text:        #1a1917;
+  --text-mid:    #4a4742;
+  --text-dim:    #8a8782;
+  --mono:        'IBM Plex Mono', monospace;
+  --sans:        'IBM Plex Sans', sans-serif;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--sans);
+  font-size: 14px;
+  line-height: 1.7;
+  min-height: 100vh;
+}
+
+.page { display: none; }
+.page.active { display: block; animation: fadeUp 0.2s ease; }
+@keyframes fadeUp { from { opacity:0; transform:translateY(4px); } to { opacity:1; transform:translateY(0); } }
+
+.layout { display: flex; min-height: 100vh; }
+
+/* SIDEBAR */
+.sidebar { width:220px; flex-shrink:0; background:var(--sidebar-bg); border-right:1px solid var(--sidebar-bdr); display:flex; flex-direction:column; position:fixed; top:0; left:0; bottom:0; z-index:100; overflow-y:auto; }
+.sidebar-brand { padding:22px 18px 16px; border-bottom:1px solid var(--sidebar-bdr); }
+.sidebar-brand-tag { font-family:var(--mono); font-size:9px; color:var(--accent); letter-spacing:3px; text-transform:uppercase; margin-bottom:5px; }
+.sidebar-brand-title { font-size:13px; font-weight:600; color:#fff; line-height:1.35; }
+.sidebar-nav { padding:10px 8px; flex:1; }
+.nav-group-label { font-family:var(--mono); font-size:9px; color:#383532; text-transform:uppercase; letter-spacing:2px; padding:0 10px; margin:14px 0 4px; }
+.nav-group-label:first-child { margin-top:2px; }
+.nav-item { display:flex; align-items:center; gap:9px; padding:8px 10px; border-radius:3px; cursor:pointer; color:#6a6762; font-size:13px; transition:all 0.12s; border:1px solid transparent; user-select:none; }
+.nav-item:hover { background:#232120; color:#bbb; }
+.nav-item.active { background:rgba(196,49,12,0.13); color:#fff; border-color:rgba(196,49,12,0.22); }
+.nav-item.active .nav-icon { color:var(--accent); opacity:1; }
+.nav-icon { width:14px; height:14px; flex-shrink:0; opacity:0.5; }
+.nav-badge { margin-left:auto; font-family:var(--mono); font-size:10px; background:#252220; color:#504d4a; padding:1px 6px; border-radius:2px; }
+.sidebar-footer { padding:14px 18px; border-top:1px solid var(--sidebar-bdr); }
+.sidebar-status-label { font-family:var(--mono); font-size:9px; color:#383532; text-transform:uppercase; letter-spacing:2px; margin-bottom:5px; }
+.sidebar-status-val { font-family:var(--mono); font-size:11px; color:var(--accent); }
+
+/* MAIN */
+.main { margin-left:220px; flex:1; }
+.main-inner { max-width:980px; margin:0 auto; padding:48px 40px 100px; }
+
+/* MOBILE */
+.mob-toggle { display:none; position:fixed; top:12px; left:12px; z-index:200; background:var(--sidebar-bg); border:1px solid var(--sidebar-bdr); border-radius:3px; padding:8px; cursor:pointer; color:#aaa; }
+.mob-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,0.5); z-index:99; }
+
+/* TYPE */
+h1 { font-size:clamp(20px,2.5vw,28px); font-weight:300; color:var(--text); line-height:1.2; letter-spacing:-0.3px; }
+h1 strong { font-weight:600; }
+h2 { font-size:17px; font-weight:600; color:var(--text); margin-bottom:14px; }
+h3 { font-size:14px; font-weight:600; color:var(--text); margin:20px 0 8px; }
+p { color:var(--text-mid); margin-bottom:10px; }
+a { color:var(--blue); text-decoration:none; }
+a:hover { text-decoration:underline; }
+
+.page-header { margin-bottom:32px; padding-bottom:22px; border-bottom:1px solid var(--border); }
+.page-eyebrow { font-family:var(--mono); font-size:10px; color:var(--accent); letter-spacing:3px; text-transform:uppercase; margin-bottom:9px; }
+.page-header p { margin-top:9px; color:var(--text-mid); max-width:600px; margin-bottom:0; }
+
+hr { border:none; border-top:1px solid var(--border); margin:32px 0; }
+
+/* CARDS */
+.card { background:var(--surface); border:1px solid var(--border); border-radius:4px; padding:18px 20px; }
+.card h3 { margin-top:0; }
+.card-grid { display:grid; gap:12px; }
+.card-grid-2 { grid-template-columns:repeat(auto-fit,minmax(240px,1fr)); }
+.card-grid-3 { grid-template-columns:repeat(auto-fit,minmax(200px,1fr)); }
+
+/* STATS */
+.stat-row { display:grid; grid-template-columns:repeat(auto-fit,minmax(130px,1fr)); gap:10px; margin-bottom:24px; }
+.stat-card { background:var(--surface); border:1px solid var(--border); border-radius:4px; padding:14px 16px; }
+.stat-label { font-family:var(--mono); font-size:9px; color:var(--text-dim); letter-spacing:2px; text-transform:uppercase; margin-bottom:5px; }
+.stat-value { font-family:var(--mono); font-size:24px; font-weight:700; color:var(--text); line-height:1; }
+.stat-sub { font-size:11px; color:var(--text-dim); margin-top:3px; }
+
+/* BADGES */
+.badge { display:inline-block; font-family:var(--mono); font-size:9px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; padding:2px 7px; border-radius:2px; border:1px solid; }
+.badge-must   { color:var(--green); border-color:rgba(26,107,56,0.3);  background:var(--green-dim); }
+.badge-should { color:var(--blue);  border-color:rgba(26,79,163,0.3);  background:var(--blue-dim); }
+.badge-nice   { color:#7a4fa3;      border-color:rgba(122,79,163,0.3); background:rgba(122,79,163,0.08); }
+.badge-done   { color:var(--green); border-color:rgba(26,107,56,0.3);  background:var(--green-dim); }
+.badge-wip    { color:var(--amber); border-color:rgba(154,104,0,0.3);  background:var(--amber-dim); }
+.badge-todo   { color:var(--text-dim); border-color:var(--border);     background:var(--surface2); }
+.badge-phase  { color:var(--accent); border-color:rgba(196,49,12,0.3); background:var(--accent-dim); }
+
+/* CODE */
+pre { background:var(--text); color:#c8d4e8; border-radius:4px; padding:16px 20px; font-family:var(--mono); font-size:12px; line-height:1.65; overflow-x:auto; margin:12px 0; white-space:pre; border-left:3px solid var(--accent); }
+code { font-family:var(--mono); font-size:12px; background:var(--surface2); border:1px solid var(--border); border-radius:3px; padding:1px 5px; color:var(--accent); }
+
+/* TABLES */
+table { width:100%; border-collapse:collapse; margin:12px 0; font-size:13px; background:var(--surface); }
+th { background:var(--surface2); color:var(--text); font-family:var(--mono); font-size:9px; letter-spacing:1.5px; text-transform:uppercase; padding:8px 12px; text-align:left; border:1px solid var(--border); font-weight:600; }
+td { padding:8px 12px; border:1px solid var(--border); color:var(--text-mid); vertical-align:top; }
+tr:nth-child(even) td { background:var(--surface2); }
+
+/* TAGS */
+.tags { display:flex; flex-wrap:wrap; gap:5px; margin-top:9px; }
+.tag { font-family:var(--mono); font-size:10px; padding:2px 7px; border-radius:2px; background:var(--surface2); color:var(--text-dim); border:1px solid var(--border); }
+
+/* CALLOUT */
+.callout { border-radius:3px; padding:10px 14px; font-size:13px; margin:10px 0; display:flex; gap:10px; align-items:flex-start; color:var(--text-mid); }
+.callout-info { background:var(--blue-dim);  border:1px solid rgba(26,79,163,0.2); }
+.callout-warn { background:var(--amber-dim); border:1px solid rgba(154,104,0,0.2); }
+.callout-ok   { background:var(--green-dim); border:1px solid rgba(26,107,56,0.2); }
+.callout-icon { flex-shrink:0; }
+
+/* PHASE BLOCKS */
+.phase-block { border:1px solid var(--border); border-radius:4px; overflow:hidden; margin-bottom:12px; background:var(--surface); }
+.phase-block-head { background:var(--surface2); padding:10px 16px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; border-bottom:1px solid var(--border); }
+.phase-num { font-family:var(--mono); font-size:9px; color:var(--accent); background:var(--accent-dim); border:1px solid rgba(196,49,12,0.2); border-radius:2px; padding:2px 7px; font-weight:700; }
+.phase-title { font-weight:600; font-size:13px; color:var(--text); }
+.phase-body { padding:12px 16px; }
+.task-row { display:flex; gap:8px; padding:5px 0; border-bottom:1px solid var(--border); font-size:13px; color:var(--text-mid); align-items:flex-start; }
+.task-row:last-child { border-bottom:none; }
+
+/* CHECKLIST */
+.checklist { list-style:none; padding:0; }
+.checklist li { display:flex; gap:9px; align-items:flex-start; padding:5px 0; font-size:13px; color:var(--text-mid); border-bottom:1px solid var(--border); }
+.checklist li:last-child { border-bottom:none; }
+.check-box { width:15px; height:15px; border:1.5px solid var(--border); border-radius:3px; flex-shrink:0; margin-top:2px; display:flex; align-items:center; justify-content:center; cursor:pointer; transition:all 0.12s; font-size:9px; font-family:var(--mono); }
+.check-box.done { background:var(--green); border-color:var(--green); color:white; }
+.checklist li.done-item > span:last-child { text-decoration:line-through; opacity:0.5; }
+
+/* CRITERION */
+.criterion { background:var(--green-dim); border:1px solid rgba(26,107,56,0.2); border-radius:3px; padding:8px 12px; font-size:13px; color:var(--text-mid); margin:4px 0; display:flex; gap:8px; align-items:flex-start; }
+.criterion::before { content:'✓'; color:var(--green); flex-shrink:0; font-weight:700; font-family:var(--mono); font-size:11px; }
+
+/* FORMULA */
+.formula { background:var(--blue-dim); border:1px solid rgba(26,79,163,0.18); border-left:3px solid var(--blue); border-radius:3px; padding:11px 14px; font-family:var(--mono); font-size:12px; color:var(--blue); margin:8px 0; }
+.formula-label { font-size:9px; color:var(--text-dim); text-transform:uppercase; letter-spacing:2px; margin-bottom:5px; font-weight:700; }
+
+/* NOTE */
+.note-box { background:var(--surface2); border:1px solid var(--border); border-left:3px solid var(--accent); border-radius:3px; padding:10px 14px; font-size:13px; color:var(--text-mid); margin:10px 0; }
+.note-box strong { color:var(--accent); }
+
+/* LOG CARDS */
+.log-card { background:var(--surface); border:1px solid var(--border); border-radius:4px; overflow:hidden; margin-bottom:16px; }
+.log-card-header { background:var(--surface2); padding:14px 18px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:flex-start; gap:12px; flex-wrap:wrap; }
+.log-card-meta { display:flex; gap:7px; flex-wrap:wrap; align-items:center; margin-bottom:5px; }
+.log-card-title { font-size:15px; font-weight:600; color:var(--text); }
+.log-card-body { padding:18px; }
+.log-section { margin-bottom:18px; }
+.log-section:last-child { margin-bottom:0; }
+.log-section-title { font-family:var(--mono); font-size:9px; color:var(--blue); text-transform:uppercase; letter-spacing:2px; margin-bottom:9px; padding-bottom:6px; border-bottom:1px solid var(--border); font-weight:700; }
+
+/* COLLAPSIBLE */
+.collapsible-btn { width:100%; background:none; border:none; border-bottom:1px solid var(--border); cursor:pointer; display:flex; align-items:center; justify-content:space-between; color:var(--text-mid); font-family:var(--sans); font-size:13px; font-weight:500; padding:9px 0; text-align:left; }
+.collapsible-btn:hover { color:var(--text); }
+.collapsible-arrow { transition:transform 0.18s; font-size:10px; color:var(--text-dim); }
+.collapsible-btn.open .collapsible-arrow { transform:rotate(180deg); }
+.collapsible-btn.open { border-bottom-color:transparent; }
+.collapsible-content { display:none; padding-bottom:6px; }
+.collapsible-content.open { display:block; }
+
+/* ARCH */
+.arch-node { background:var(--surface2); border:1px solid var(--border); border-radius:3px; padding:9px 12px 9px 24px; font-family:var(--mono); font-size:12px; color:var(--text-mid); margin:5px 0; position:relative; }
+.arch-node::before { content:''; position:absolute; left:9px; top:50%; transform:translateY(-50%); width:6px; height:6px; border-radius:50%; background:var(--accent); }
+.arch-node.server::before { background:var(--green); }
+.arch-node.client::before { background:var(--blue); }
+
+/* FOLDER TREE */
+.folder-tree { font-family:var(--mono); font-size:12px; line-height:1.9; background:var(--surface); border:1px solid var(--border); border-radius:4px; padding:16px 20px; color:var(--text-mid); margin:12px 0; }
+.folder-tree .dir { color:var(--blue); font-weight:500; }
+.folder-tree .cmt { color:var(--text-dim); }
+
+/* ABOUT */
+.about-hero { display:flex; align-items:center; gap:20px; margin-bottom:24px; flex-wrap:wrap; }
+.about-avatar { width:60px; height:60px; border-radius:50%; background:var(--accent); display:flex; align-items:center; justify-content:center; font-size:18px; font-weight:700; color:white; flex-shrink:0; font-family:var(--mono); }
+.about-name { font-size:19px; font-weight:600; color:var(--text); }
+.about-role { font-family:var(--mono); font-size:11px; color:var(--text-dim); margin-top:2px; }
+.about-links { display:flex; gap:7px; margin-top:9px; flex-wrap:wrap; }
+.about-link { display:flex; gap:5px; align-items:center; font-family:var(--mono); font-size:11px; color:var(--text-mid); background:var(--surface); border:1px solid var(--border); border-radius:3px; padding:4px 9px; text-decoration:none; transition:all 0.12s; }
+.about-link:hover { color:var(--accent); border-color:rgba(196,49,12,0.3); text-decoration:none; }
+
+/* ADMIN */
+.admin-wrap { max-width:560px; }
+.form-group { margin-bottom:14px; }
+.form-label { font-family:var(--mono); font-size:10px; color:var(--text-dim); text-transform:uppercase; letter-spacing:1.5px; display:block; margin-bottom:6px; font-weight:700; }
+.form-input { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:3px; padding:9px 12px; font-family:var(--mono); font-size:13px; color:var(--text); outline:none; transition:border-color 0.12s; }
+.form-input:focus { border-color:var(--accent); }
+.form-textarea { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:3px; padding:9px 12px; font-family:var(--mono); font-size:12px; color:var(--text); outline:none; resize:vertical; min-height:110px; transition:border-color 0.12s; line-height:1.6; }
+.form-textarea:focus { border-color:var(--accent); }
+.form-select { width:100%; background:var(--surface); border:1px solid var(--border); border-radius:3px; padding:9px 12px; font-family:var(--mono); font-size:13px; color:var(--text); outline:none; cursor:pointer; }
+.btn { display:inline-flex; align-items:center; gap:7px; padding:9px 18px; border-radius:3px; font-family:var(--mono); font-size:12px; font-weight:700; letter-spacing:0.5px; cursor:pointer; border:1px solid; transition:all 0.12s; text-transform:uppercase; }
+.btn-primary { background:var(--accent); color:white; border-color:var(--accent); }
+.btn-primary:hover { background:#a82a0a; }
+.btn-ghost { background:transparent; color:var(--text-mid); border-color:var(--border); }
+.btn-ghost:hover { border-color:var(--accent); color:var(--accent); }
+.btn-danger { background:transparent; color:var(--accent); border-color:rgba(196,49,12,0.3); font-size:10px; padding:4px 9px; }
+.btn-danger:hover { background:var(--accent-dim); }
+.admin-error { color:var(--accent); font-family:var(--mono); font-size:12px; margin-top:8px; }
+.admin-section { background:var(--surface); border:1px solid var(--border); border-radius:4px; padding:20px; margin-bottom:20px; }
+.admin-section-title { font-family:var(--mono); font-size:10px; color:var(--accent); text-transform:uppercase; letter-spacing:2px; margin-bottom:16px; padding-bottom:8px; border-bottom:1px solid var(--border); font-weight:700; }
+.admin-hint { font-family:var(--mono); font-size:10px; color:var(--text-dim); margin-top:4px; }
+
+/* EMPTY */
+.empty-state { text-align:center; padding:48px 20px; }
+.empty-state-icon { font-size:28px; margin-bottom:10px; }
+.empty-state p { font-size:13px; color:var(--text-dim); }
+
+/* RESPONSIVE */
+@media (max-width:768px) {
+  .mob-toggle { display:flex; }
+  .sidebar { transform:translateX(-100%); transition:transform 0.25s ease; }
+  .sidebar.open { transform:translateX(0); }
+  .mob-overlay.open { display:block; }
+  .main { margin-left:0; }
+  .main-inner { padding:56px 16px 80px; }
+  .stat-row { grid-template-columns:repeat(2,1fr); }
+}
+</style>
+</head>
+<body>
+
+<button class="mob-toggle" onclick="toggleSidebar()" aria-label="Menu">
+  <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+</button>
+<div class="mob-overlay" id="mobOverlay" onclick="toggleSidebar()"></div>
+
+<div class="layout">
+
+<!-- SIDEBAR -->
+<aside class="sidebar" id="sidebar">
+  <div class="sidebar-brand">
+    <div class="sidebar-brand-tag">MSc Thesis · IPL</div>
+    <div class="sidebar-brand-title">Ballistic Simulation<br>Dev Hub</div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-group-label">Overview</div>
+    <a class="nav-item active" onclick="showPage('dashboard')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/></svg>
+      Dashboard
+    </a>
+    <a class="nav-item" onclick="showPage('about')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      About
+    </a>
+    <div class="nav-group-label">Project</div>
+    <a class="nav-item" onclick="showPage('scope')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+      Scope &amp; RQs
+    </a>
+    <a class="nav-item" onclick="showPage('architecture')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3"/></svg>
+      Architecture
+    </a>
+    <a class="nav-item" onclick="showPage('roadmap')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg>
+      Roadmap
+    </a>
+    <div class="nav-group-label">Development</div>
+    <a class="nav-item" onclick="showPage('logs')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+      Dev Logs
+      <span class="nav-badge" id="nav-log-count">0</span>
+    </a>
+    <a class="nav-item" onclick="showPage('research')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
+      Research Questions
+    </a>
+    <a class="nav-item" onclick="showPage('evidence')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
+      Evidence Tracker
+    </a>
+    <div class="nav-group-label">Admin</div>
+    <a class="nav-item" onclick="showPage('admin')">
+      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
+      Admin
+    </a>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="sidebar-status-label">Status</div>
+    <div class="sidebar-status-val">Phase 1 · In Progress</div>
+  </div>
+</aside>
+
+<!-- MAIN -->
+<main class="main">
+<div class="main-inner">
+
+<!-- DASHBOARD -->
+<div class="page active" id="page-dashboard">
+  <div class="page-header">
+    <div class="page-eyebrow">Thesis Dev Hub · Polytechnic of Leiria</div>
+    <h1><strong>Ballistic Simulation System</strong></h1>
+    <p>Development and Optimization of a Multiplayer Real-Time Weapon Ballistics System — MSc Digital Games Development. Live progress tracking for supervisors and mentors.</p>
+  </div>
+  <div class="stat-row">
+    <div class="stat-card">
+      <div class="stat-label">Current Phase</div>
+      <div class="stat-value" style="font-size:15px;margin-top:3px;">Phase 1</div>
+      <div class="stat-sub">Foundation &amp; Data Layer</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Log Entries</div>
+      <div class="stat-value" id="dash-log-count">0</div>
+      <div class="stat-sub">written so far</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Subsystems</div>
+      <div class="stat-value">0<span style="font-size:14px;color:var(--text-dim)">/5</span></div>
+      <div class="stat-sub">complete</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Status</div>
+      <div class="stat-value" style="font-size:14px;margin-top:3px;color:var(--amber);">Active</div>
+      <div class="stat-sub">development</div>
+    </div>
+  </div>
+  <div class="card-grid card-grid-2" style="margin-bottom:24px;">
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;">
+        <h3 style="margin:0;">Current Focus</h3>
+        <span class="badge badge-wip">In Progress</span>
+      </div>
+      <p style="font-size:13px;">Phase 1 — Project Foundation. UE5 C++ module structure, core structs (<code>FBallisticProjectile</code>, <code>FBallisticImpact</code>), data asset classes (<code>UAmmoData</code>, <code>UMaterialPenetrationData</code>), and <code>AEnvironmentManager</code> in the test level.</p>
+      <div class="tags"><span class="tag">UE5</span><span class="tag">C++</span><span class="tag">Data Assets</span><span class="tag">Replication</span></div>
+    </div>
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;">
+        <h3 style="margin:0;">Up Next</h3>
+        <span class="badge badge-todo">Phase 2</span>
+      </div>
+      <p style="font-size:13px;">Ballistic Simulation Core — <code>UBallisticSimulator</code> long-step loop, drag + gravity integration, debug HUD trajectory draw, per-step CSV logging.</p>
+      <div class="tags"><span class="tag">UBallisticSimulator</span><span class="tag">PhysicsMaterial</span><span class="tag">DebugHUD</span></div>
+    </div>
+  </div>
+  <h2>Recent Log Entries</h2>
+  <div id="dash-recent-logs">
+    <div class="empty-state"><div class="empty-state-icon">📋</div><p>No log entries yet. Add the first one in the <strong>Admin</strong> panel.</p></div>
+  </div>
+</div>
+
+<!-- ABOUT -->
+<div class="page" id="page-about">
+  <div class="page-header">
+    <div class="page-eyebrow">Author</div>
+    <h1><strong>Rodrigo Braz</strong></h1>
+    <p>Game Developer · MSc Candidate · Polytechnic of Leiria, Portugal</p>
+  </div>
+  <div class="about-hero">
+    <div class="about-avatar">RB</div>
+    <div>
+      <div class="about-name">Rodrigo Braz</div>
+      <div class="about-role">MSc Digital Games Development · Escola Superior de Tecnologia e Gestão</div>
+      <div class="about-links">
+        <a class="about-link" href="https://braz11.github.io/Portfolio/" target="_blank">
+          <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M10 13a5 5 0 007.54.54l3-3a5 5 0 00-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 00-7.54-.54l-3 3a5 5 0 007.07 7.07l1.71-1.71"/></svg>Portfolio
+        </a>
+        <a class="about-link" href="https://www.linkedin.com/in/rodrigo-braz-7ab42522a/pt/" target="_blank">
+          <svg width="11" height="11" fill="currentColor" viewBox="0 0 24 24"><path d="M16 8a6 6 0 016 6v7h-4v-7a2 2 0 00-2-2 2 2 0 00-2 2v7h-4v-7a6 6 0 016-6zM2 9h4v12H2z"/><circle cx="4" cy="4" r="2"/></svg>LinkedIn
+        </a>
+        <a class="about-link" href="mailto:2242746@my.ipleiria.pt">
+          <svg width="11" height="11" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>2242746@my.ipleiria.pt
+        </a>
+      </div>
+    </div>
+  </div>
+  <hr>
+  <div class="card-grid card-grid-2">
+    <div class="card">
+      <h3 style="margin-top:0;">Technical Profile</h3>
+      <p style="font-size:13px;">Game programmer with experience in both Unity and Unreal Engine, working primarily in C++ and C#. Background covers real-time systems, physics simulation, engine architecture, and multiplayer networking.</p>
+      <div class="tags"><span class="tag">C++</span><span class="tag">C#</span><span class="tag">UE5</span><span class="tag">Unity</span><span class="tag">Multiplayer</span><span class="tag">Game Physics</span></div>
+    </div>
+    <div class="card">
+      <h3 style="margin-top:0;">Thesis Context</h3>
+      <p style="font-size:13px;">MSc thesis prototype for the MDiGD programme at Polytechnic of Leiria. Goal: build a demonstrable, academically rigorous ballistic simulation system in UE5 C++. Target employer: <strong>Saber Interactive Porto</strong>.</p>
+    </div>
+  </div>
+  <hr>
+  <h2>Thesis Details</h2>
+  <table>
+    <tr><th>Field</th><th>Value</th></tr>
+    <tr><td>Thesis Title</td><td>Development and Optimization of a Multiplayer Real-Time Weapon Ballistics System</td></tr>
+    <tr><td>Programme</td><td>Master's Degree in Digital Games Development (MDiGD)</td></tr>
+    <tr><td>Institution</td><td>Escola Superior de Tecnologia e Gestão, Polytechnic of Leiria</td></tr>
+    <tr><td>Engine / Language</td><td>Unreal Engine 5 — C++</td></tr>
+    <tr><td>Target Employer</td><td>Saber Interactive Porto</td></tr>
+  </table>
+</div>
+
+<!-- SCOPE -->
+<div class="page" id="page-scope">
+  <div class="page-header">
+    <div class="page-eyebrow">Project Scope</div>
+    <h1><strong>Scope &amp; Research Questions</strong></h1>
+    <p>The goal is a demonstrable, measurable, academically defensible prototype that directly answers three research questions from the systematic review.</p>
+  </div>
+  <div class="card-grid card-grid-3" style="margin-bottom:20px;">
+    <div class="card" style="border-top:2px solid var(--accent);">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--accent);letter-spacing:2px;text-transform:uppercase;margin-bottom:7px;">RQ1</div>
+      <h3 style="margin-top:0;font-size:13px;">Aerodynamic drag &amp; projectile energy loss</h3>
+      <p style="font-size:12px;">Custom long-step simulation loop, velocity decay via drag formula, air density as runtime variable, bullet drop via gravity integration per step.</p>
+      <div class="tags"><span class="tag">UBallisticSimulator</span><span class="tag">AEnvironmentManager</span></div>
+    </div>
+    <div class="card" style="border-top:2px solid var(--blue);">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--blue);letter-spacing:2px;text-transform:uppercase;margin-bottom:7px;">RQ2</div>
+      <h3 style="margin-top:0;font-size:13px;">Bullet penetration through variable-density materials</h3>
+      <p style="font-size:12px;">Per-surface data asset, impact angle via dot product, energy threshold for penetration vs. stop vs. ricochet, exit velocity calculation.</p>
+      <div class="tags"><span class="tag">UPenetrationResolver</span><span class="tag">UMaterialPenetrationData</span></div>
+    </div>
+    <div class="card" style="border-top:2px solid var(--green);">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--green);letter-spacing:2px;text-transform:uppercase;margin-bottom:7px;">RQ3</div>
+      <h3 style="margin-top:0;font-size:13px;">Multiplayer sync &amp; lag compensation for non-linear projectiles</h3>
+      <p style="font-size:12px;">Server-authoritative RPC, client prediction trace, delta logged to HUD, measured across 0/50/100/200ms Network Emulation tiers.</p>
+      <div class="tags"><span class="tag">UWeaponComponent</span><span class="tag">ServerFire RPC</span></div>
+    </div>
+  </div>
+  <div class="note-box"><strong>Scope boundary:</strong> One weapon type, one ammo type, a flat test level with material targets, two-player listen server. Not a playable game — a physics testbed.</div>
+  <hr>
+  <h2>SLR Findings Applied</h2>
+  <table>
+    <tr><th>SLR Finding</th><th>Implementation Response</th></tr>
+    <tr><td>Hitscan lacks tactical depth and realism</td><td>Long-step projectile simulation with full physics per step — no hitscan fallback</td></tr>
+    <tr><td>"Simulation-Latency Paradox" — complexity increases lag impact</td><td>Server runs full sim; client receives only <code>FBallisticImpact</code> result (minimal payload)</td></tr>
+    <tr><td>Gap: dynamic weather integration for real-time projectile physics</td><td><code>AEnvironmentManager</code> — runtime air density as replicated variable, switchable mid-session</td></tr>
+    <tr><td>Lag compensation needed for competitive fairness</td><td>Client prediction + server validation delta logged — measurable and chartable for thesis</td></tr>
+  </table>
+</div>
+
+<!-- ARCHITECTURE -->
+<div class="page" id="page-architecture">
+  <div class="page-header">
+    <div class="page-eyebrow">System Design</div>
+    <h1><strong>Code Architecture</strong></h1>
+    <p>Five decoupled subsystems, each independently testable and mapped to a thesis chapter section.</p>
+  </div>
+  <h2>Subsystem Map</h2>
+  <table>
+    <tr><th>Subsystem</th><th>Key Class</th><th>Type</th><th>Thesis §</th></tr>
+    <tr><td><strong>Ballistic Simulator</strong></td><td><code>UBallisticSimulator</code></td><td>UObject (server-only)</td><td>Impl. §4.1</td></tr>
+    <tr><td><strong>Weapon System</strong></td><td><code>UWeaponComponent</code></td><td>UActorComponent</td><td>Impl. §4.2</td></tr>
+    <tr><td><strong>Penetration Resolver</strong></td><td><code>UPenetrationResolver</code></td><td>UObject (server-only)</td><td>Impl. §4.3</td></tr>
+    <tr><td><strong>Environment Manager</strong></td><td><code>AEnvironmentManager</code></td><td>AActor (replicated)</td><td>Method. §3.2</td></tr>
+    <tr><td><strong>Ballistic Debug HUD</strong></td><td><code>ABallisticDebugHUD</code></td><td>AHUD</td><td>Results</td></tr>
+  </table>
+  <h2 style="margin-top:24px;">Data Layer</h2>
+  <table>
+    <tr><th>Type</th><th>Class</th><th>Purpose</th></tr>
+    <tr><td>UDataAsset</td><td><code>UAmmoData</code></td><td>Mass, muzzle velocity, drag coefficient (Cd), cross-sectional area</td></tr>
+    <tr><td>UDataAsset</td><td><code>UMaterialPenetrationData</code></td><td>Density, thickness, friction factor, ricochet angle threshold</td></tr>
+    <tr><td>Struct</td><td><code>FBallisticProjectile</code></td><td>Position, velocity, energy, elapsed time, step count</td></tr>
+    <tr><td>Struct</td><td><code>FBallisticImpact</code></td><td>Hit location, normal, entry/exit velocity, penetrated flag, material ref</td></tr>
+  </table>
+  <hr>
+  <h2>Network Flow</h2>
+  <div class="arch-node client">Client: Player presses fire → RequestFire(AimDir) on UWeaponComponent</div>
+  <div style="text-align:center;color:var(--text-dim);font-family:var(--mono);font-size:11px;padding:3px 0;">↓  ServerFire() RPC (Reliable, WithValidation)</div>
+  <div class="arch-node server">Server: ServerFire_Implementation() → UBallisticSimulator::SimulateProjectile()</div>
+  <div style="text-align:center;color:var(--text-dim);font-family:var(--mono);font-size:11px;padding:3px 0;">↓  reads AirDensity from AEnvironmentManager</div>
+  <div class="arch-node server">Server: Long-step loop → hit → UPenetrationResolver::Resolve()</div>
+  <div style="text-align:center;color:var(--text-dim);font-family:var(--mono);font-size:11px;padding:3px 0;">↓  FBallisticImpact produced</div>
+  <div class="arch-node">MulticastImpact(FBallisticImpact) → all clients receive result</div>
+  <div style="text-align:center;color:var(--text-dim);font-family:var(--mono);font-size:11px;padding:3px 0;">↓  in parallel ↓</div>
+  <div class="arch-node client">Client: Local prediction trace → predicted hit delta logged to HUD</div>
+  <hr>
+  <h2>Folder Structure</h2>
+  <div class="folder-tree">
+<span class="dir">Source/BallisticsThesis/</span>
+├── <span class="dir">Ballistics/</span>          <span class="cmt">← Core simulation</span>
+│   ├── BallisticSimulator.h/.cpp
+│   ├── BallisticProjectile.h      <span class="cmt">← FBallisticProjectile struct</span>
+│   └── BallisticImpact.h          <span class="cmt">← FBallisticImpact struct</span>
+├── <span class="dir">Weapon/</span>
+│   └── WeaponComponent.h/.cpp
+├── <span class="dir">Penetration/</span>
+│   └── PenetrationResolver.h/.cpp
+├── <span class="dir">Environment/</span>
+│   └── EnvironmentManager.h/.cpp
+├── <span class="dir">Data/</span>
+│   ├── AmmoData.h/.cpp
+│   └── MaterialPenetrationData.h/.cpp
+└── <span class="dir">Debug/</span>
+    └── BallisticDebugHUD.h/.cpp
+  </div>
+  <hr>
+  <h2>Mermaid Graph</h2>
+  <p style="font-size:13px;">Paste into Obsidian (fenced <code>mermaid</code> block) or <a href="https://mermaid.live" target="_blank">mermaid.live</a>.</p>
+<pre>
+```mermaid
+flowchart TD
+  subgraph INPUT["Client Input"]
+    PI["APlayerController / Fire Action"] --> WC["UWeaponComponent"]
+  end
+  subgraph DATA["Data Assets"]
+    AD["UAmmoData"]
+    MD["UMaterialPenetrationData"]
+  end
+  subgraph SERVER["Server Simulation"]
+    BS["UBallisticSimulator"]
+    EM["AEnvironmentManager"]
+    PR["UPenetrationResolver"]
+    HIT["FBallisticImpact"]
+  end
+  subgraph PREDICT["Client Prediction"]
+    LT["Local Line Trace"] --> PH["Predicted Hit"]
+  end
+  subgraph OUT["Output"]
+    MC["MulticastImpact()"]
+    VFX["Impact VFX"]
+    HUD["ABallisticDebugHUD"]
+  end
+  WC -->|reads| AD
+  WC -->|ServerFire RPC| SERVER
+  WC --> LT
+  PH -->|log delta| HUD
+  BS -->|reads| EM
+  BS -->|on hit| PR
+  PR -->|reads| MD
+  PR --> HIT
+  HIT --> MC
+  MC --> VFX
+  MC -->|server result| HUD
+  BS -->|path points| HUD
+```</pre>
+</div>
+
+<!-- ROADMAP -->
+<div class="page" id="page-roadmap">
+  <div class="page-header">
+    <div class="page-eyebrow">Development Plan</div>
+    <h1><strong>Project Roadmap</strong></h1>
+    <p>Five phases covering all required features. Each phase maps to a thesis chapter with measurable acceptance criteria.</p>
+  </div>
+  <div class="callout callout-info">
+    <span class="callout-icon">ℹ</span>
+    <span>Priority: <span class="badge badge-must">MUST</span> thesis-critical &nbsp; <span class="badge badge-should">SHOULD</span> strengthens results &nbsp; <span class="badge badge-nice">NICE</span> bonus if time allows</span>
+  </div>
+  <div style="margin-top:18px;">
+  <div class="phase-block">
+    <div class="phase-block-head"><span class="phase-num">PHASE 1</span><span class="phase-title">Foundation — Structs, Data Assets, Environment</span><span class="badge badge-wip">In Progress</span></div>
+    <div class="phase-body">
+      <div class="task-row"><span class="badge badge-must">MUST</span><span>UE5 C++ project, module setup, folder structure</span></div>
+      <div class="task-row"><span class="badge badge-must">MUST</span><span><code>FBallisticProjectile</code> and <code>FBallisticImpact</code> structs defined and compiling</span></div>
+      <div class="task-row"><span class="badge badge-must">MUST</span><span><code>UAmmoData</code> and <code>UMaterialPenetrationData</code> data asset classes created</span></div>
+      <div class="task-row"><span class="badge badge-must">MUST</span><span><code>AEnvironmentManager</code> placed in <code>L_BallisticsTestRange</code>, replication verified</span></div>
+      <div class="task-row"><span class="badge badge-must">MUST</span><span>Assets filled: <code>DA_Ammo_9mm</code>, <code>DA_Material_Concrete</code>, <code>DA_Material_Wood</code></span></div>
+      <div class="task-row"><span class="badge badge-must">MUST</span><span>2-player PIE listen server running without errors</span></div>
+      <div class="task-row"><span class="badge badge-should">SHOULD</span><span><code>EWeatherPreset</code> enum and <code>SetWeatherPreset()</code> implemented</span></div>
+    </div>
+  </div>
+  <div class="phase-block">
+    <div class="phase-block-head"><span class="phase-num">PHASE 2</span><span class="phase-title">Ballistic Simulation Core</span><span class="badge badge-todo">Upcoming</span></div>
+    <div class="phase-body">
+      <div class="task-row"><span class="badge badge-must">MUST</span><span><code>UBallisticSimulator</code> — long-step loop: drag + gravity per 5ms step, line trace per step</span></div>
+      <div class="task-row"><span class="badge badge-must">MUST</span><span><code>ComputeDragAcceleration()</code> — Fd = 0.5 × ρ × v² × Cd × A</span></div>
+      <div class="task-row"><span class="badge badge-must">MUST</span><span>Fill <code>OutPathPoints[]</code> for debug trajectory draw</span></div>
+      <div class="task-row"><span class="badge badge-must">MUST</span><span>Standalone unit test: bullet drop at expected rate vs real ballistic tables</span></div>
+      <div class="task-row"><span class="badge badge-must">MUST</span><span><code>ABallisticDebugHUD</code> trajectory draw visible in PIE</span></div>
+      <div class="task-row"><span class="badge badge-should">SHOULD</span><span>Per-step velocity/energy logged to CSV for thesis graphs</span></div>
+      <div class="task-row"><span class="badge badge-nice">NICE</span><span>Wind vector integration to drag step</span></div>
+    </div>
+  </div>
+  <div class="phase-block">
+    <div class="phase-block-head"><span class="phase-num">PHASE 3</span><span class="phase-title">Penetration Resolver</span><span class="badge badge-todo">Upcoming</span></div>
+    <div class="phase-body">
+      <div class="task-row"><span class="badge badge-must">MUST</span><span><code>UPenetrationResolver</code> — impact angle, energy threshold, exit velocity, ricochet flag</span></div>
+      <div class="task-row"><span class="badge badge-must">MUST</span><span>Physical material tags bound to data assets via <code>SurfaceTag</code></span></div>
+      <div class="task-row"><span class="badge badge-must">MUST</span><span>Verified: 9mm penetrates wood, stops in concrete, ricochets on metal at shallow angle</span></div>
+      <div class="task-row"><span class="badge badge-must">MUST</span><span>HUD logs: material name, entry/exit energy, penetration decision</span></div>
+      <div class="task-row"><span class="badge badge-should">SHOULD</span><span>Multi-surface: re-enter simulator from exit point with reduced velocity</span></div>
+    </div>
+  </div>
+  <div class="phase-block">
+    <div class="phase-block-head"><span class="phase-num">PHASE 4</span><span class="phase-title">Weapon Component + Multiplayer</span><span class="badge badge-todo">Upcoming</span></div>
+    <div class="phase-body">
+      <div class="task-row"><span class="badge badge-must">MUST</span><span><code>UWeaponComponent</code> — <code>ServerFire</code> RPC, <code>MulticastImpact</code>, server-side simulator call</span></div>
+      <div class="task-row"><span class="badge badge-must">MUST</span><span>Hooked to PlayerController input in <code>BP_TestWeapon</code></span></div>
+      <div class="task-row"><span class="badge badge-must">MUST</span><span>2-player PIE: fire from client 1, impact VFX spawns on client 2</span></div>
+      <div class="task-row"><span class="badge badge-must">MUST</span><span>Client prediction trace, delta vs server result logged to HUD</span></div>
+      <div class="task-row"><span class="badge badge-should">SHOULD</span><span>Network Emulation screenshots: HUD delta at 0ms and 100ms latency</span></div>
+      <div class="task-row"><span class="badge badge-nice">NICE</span><span>Second ammo type (.50 BMG) for comparative benchmark</span></div>
+    </div>
+  </div>
+  <div class="phase-block">
+    <div class="phase-block-head"><span class="phase-num">PHASE 5</span><span class="phase-title">Benchmarking, Evidence &amp; Polish</span><span class="badge badge-todo">Upcoming</span></div>
+    <div class="phase-body">
+      <div class="task-row"><span class="badge badge-must">MUST</span><span>50 simultaneous projectiles stress test — CPU cost via UE5 Insights</span></div>
+      <div class="task-row"><span class="badge badge-must">MUST</span><span>Air density variation (0.8 / 1.225 / 1.5 kg/m³) — trajectory drop table</span></div>
+      <div class="task-row"><span class="badge badge-must">MUST</span><span>Velocity/energy decay CSV export per density — graph for results chapter</span></div>
+      <div class="task-row"><span class="badge badge-must">MUST</span><span>Demo video: bullet drop, penetration, multiplayer impact sync</span></div>
+      <div class="task-row"><span class="badge badge-should">SHOULD</span><span>Network emulation at 0/50/100/200ms — hit delta table per latency tier</span></div>
+      <div class="task-row"><span class="badge badge-nice">NICE</span><span>Penetration heatmap via accumulated DrawDebugPoint</span></div>
+    </div>
+  </div>
+  </div>
+</div>
+
+<!-- DEV LOGS -->
+<div class="page" id="page-logs">
+  <div class="page-header">
+    <div class="page-eyebrow">Development Journal</div>
+    <h1><strong>Dev Logs</strong></h1>
+    <p>Progress entries covering objectives, implementation details, research alignment, challenges, and evidence collected.</p>
+  </div>
+  <div id="logs-container">
+    <div class="empty-state"><div class="empty-state-icon">📋</div><p>No log entries yet. Add the first one from the <strong>Admin</strong> panel.</p></div>
+  </div>
+</div>
+
+<!-- RESEARCH -->
+<div class="page" id="page-research">
+  <div class="page-header">
+    <div class="page-eyebrow">Academic Foundation</div>
+    <h1><strong>Research Questions</strong></h1>
+    <p>From the Systematic Literature Review. Every implementation decision maps back to one of these three questions.</p>
+  </div>
+  <div class="card-grid" style="gap:12px;margin-bottom:24px;">
+    <div class="card" style="border-left:3px solid var(--accent);">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--accent);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">RQ1</div>
+      <h3 style="margin-top:0;">How do current game engines model aerodynamic drag and projectile energy loss?</h3>
+      <p style="font-size:13px;">Addressed by <code>UBallisticSimulator</code>. Custom long-step integration using Fd = 0.5ρv²CdA replaces UE's default physics tick. Air density from <code>AEnvironmentManager</code> makes ρ a runtime variable — the gap identified in the SLR.</p>
+      <div class="tags"><span class="tag">UBallisticSimulator</span><span class="tag">AEnvironmentManager</span><span class="tag">UAmmoData</span><span class="tag">Phase 2</span></div>
+    </div>
+    <div class="card" style="border-left:3px solid var(--blue);">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--blue);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">RQ2</div>
+      <h3 style="margin-top:0;">What are the most efficient algorithms for calculating bullet penetration through variable-density materials?</h3>
+      <p style="font-size:13px;">Addressed by <code>UPenetrationResolver</code>. Uses impact angle (dot product against surface normal), kinetic energy threshold, and per-material friction factor to determine penetration vs. stop vs. ricochet.</p>
+      <div class="tags"><span class="tag">UPenetrationResolver</span><span class="tag">UMaterialPenetrationData</span><span class="tag">Phase 3</span></div>
+    </div>
+    <div class="card" style="border-left:3px solid var(--green);">
+      <div style="font-family:var(--mono);font-size:9px;color:var(--green);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">RQ3</div>
+      <h3 style="margin-top:0;">How do developers handle network synchronization and lag compensation for non-linear projectiles?</h3>
+      <p style="font-size:13px;">Addressed by <code>UWeaponComponent</code>. Server-authoritative via <code>ServerFire</code> RPC. Client runs a local prediction trace. Delta between prediction and server result logged to <code>ABallisticDebugHUD</code> and measured across 0/50/100/200ms tiers.</p>
+      <div class="tags"><span class="tag">UWeaponComponent</span><span class="tag">ABallisticDebugHUD</span><span class="tag">ServerFire RPC</span><span class="tag">Phase 4</span></div>
+    </div>
+  </div>
+  <hr>
+  <h2>SLR Key Findings Applied</h2>
+  <table>
+    <tr><th>SLR Finding</th><th>Implementation Response</th></tr>
+    <tr><td>Hitscan lacks tactical depth and realism</td><td>Long-step projectile simulation with full physics per step — no hitscan fallback</td></tr>
+    <tr><td>"Simulation-Latency Paradox" — complexity increases lag impact</td><td>Server runs full sim; client receives only <code>FBallisticImpact</code> result (minimal network payload)</td></tr>
+    <tr><td>Gap: dynamic weather integration for real-time projectile physics</td><td><code>AEnvironmentManager</code> — runtime air density as replicated variable, switchable mid-session</td></tr>
+    <tr><td>Sophisticated lag compensation required for competitive fairness</td><td>Client prediction trace + server validation delta logged — measurable and chartable for thesis</td></tr>
+  </table>
+</div>
+
+<!-- EVIDENCE -->
+<div class="page" id="page-evidence">
+  <div class="page-header">
+    <div class="page-eyebrow">Evidence Tracker</div>
+    <h1><strong>Evidence Gallery</strong></h1>
+    <p>Screenshots, debug logs, CSVs, and recordings collected as thesis evidence, organised by phase.</p>
+  </div>
+  <div class="callout callout-warn">
+    <span class="callout-icon">→</span>
+    <span>Add screenshots and recordings here as development progresses. Sections: Trajectory Debug, Penetration Results, Network Latency Tests, Performance Benchmarks.</span>
+  </div>
+  <hr>
+  <h2>Evidence Checklist</h2>
+  <table>
+    <tr><th>Phase</th><th>Evidence Item</th><th>Status</th></tr>
+    <tr><td>1</td><td>Project folder structure screenshot</td><td><span class="badge badge-done">Collected</span></td></tr>
+    <tr><td>1</td><td>DA_Ammo_9mm filled in editor</td><td><span class="badge badge-done">Collected</span></td></tr>
+    <tr><td>1</td><td>DA_Material_Concrete and DA_Material_Wood</td><td><span class="badge badge-done">Collected</span></td></tr>
+    <tr><td>1</td><td>AEnvironmentManager in level with replicated props</td><td><span class="badge badge-done">Collected</span></td></tr>
+    <tr><td>1</td><td>2-player PIE clean Output Log</td><td><span class="badge badge-done">Collected</span></td></tr>
+    <tr><td>2</td><td>Bullet trajectory debug draw in PIE</td><td><span class="badge badge-todo">Pending</span></td></tr>
+    <tr><td>2</td><td>Velocity/energy decay CSV (per air density)</td><td><span class="badge badge-todo">Pending</span></td></tr>
+    <tr><td>2</td><td>Trajectory drop comparison graph (3 air densities)</td><td><span class="badge badge-todo">Pending</span></td></tr>
+    <tr><td>3</td><td>9mm penetrates wood — debug log screenshot</td><td><span class="badge badge-todo">Pending</span></td></tr>
+    <tr><td>3</td><td>9mm stopped by concrete — debug log screenshot</td><td><span class="badge badge-todo">Pending</span></td></tr>
+    <tr><td>3</td><td>Ricochet event on metal at shallow angle</td><td><span class="badge badge-todo">Pending</span></td></tr>
+    <tr><td>4</td><td>2-player fire → impact VFX on both clients</td><td><span class="badge badge-todo">Pending</span></td></tr>
+    <tr><td>4</td><td>HUD: server vs client hit delta at 0ms latency</td><td><span class="badge badge-todo">Pending</span></td></tr>
+    <tr><td>4</td><td>HUD: server vs client hit delta at 100ms latency</td><td><span class="badge badge-todo">Pending</span></td></tr>
+    <tr><td>5</td><td>50-projectile stress test — UE Insights screenshot</td><td><span class="badge badge-todo">Pending</span></td></tr>
+    <tr><td>5</td><td>Network latency table (0/50/100/200ms)</td><td><span class="badge badge-todo">Pending</span></td></tr>
+    <tr><td>5</td><td>Demo video recording</td><td><span class="badge badge-todo">Pending</span></td></tr>
+  </table>
+</div>
+
+<!-- ADMIN -->
+<div class="page" id="page-admin">
+
+  <!-- LOGIN -->
+  <div id="admin-login-view">
+    <div class="page-header">
+      <div class="page-eyebrow">Admin</div>
+      <h1><strong>Admin Panel</strong></h1>
+      <p>Password required to manage log entries.</p>
+    </div>
+    <div style="max-width:340px;">
+      <div class="form-group">
+        <label class="form-label">Password</label>
+        <input class="form-input" type="password" id="admin-pw-input" placeholder="Enter password" onkeydown="if(event.key==='Enter')adminLogin()">
+        <div class="admin-error" id="admin-error" style="display:none;">Incorrect password.</div>
+      </div>
+      <button class="btn btn-primary" onclick="adminLogin()">Unlock</button>
+    </div>
+  </div>
+
+  <!-- PANEL -->
+  <div id="admin-panel-view" style="display:none;">
+    <div class="page-header">
+      <div class="page-eyebrow">Admin · Unlocked</div>
+      <h1><strong>Manage Dev Logs</strong></h1>
+      <div style="margin-top:10px;">
+        <button class="btn btn-ghost" onclick="adminLogout()">Lock &amp; Exit</button>
+      </div>
+    </div>
+
+    <!-- ADD ENTRY -->
+    <div class="admin-section">
+      <div class="admin-section-title">Add New Log Entry</div>
+      <div class="form-group">
+        <label class="form-label">Title</label>
+        <input class="form-input" type="text" id="log-title" placeholder="e.g. UBallisticSimulator — Core Loop Implemented">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Date</label>
+        <input class="form-input" type="date" id="log-date">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Phase</label>
+        <select class="form-select" id="log-phase">
+          <option value="Phase 1">Phase 1 — Foundation</option>
+          <option value="Phase 2">Phase 2 — Ballistic Simulation</option>
+          <option value="Phase 3">Phase 3 — Penetration Resolver</option>
+          <option value="Phase 4">Phase 4 — Weapon + Multiplayer</option>
+          <option value="Phase 5">Phase 5 — Benchmarking &amp; Polish</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Status</label>
+        <select class="form-select" id="log-status">
+          <option value="done">Complete</option>
+          <option value="wip">In Progress</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Tags (comma separated)</label>
+        <input class="form-input" type="text" id="log-tags" placeholder="UE5, C++, Data Assets, Replication">
+      </div>
+      <div class="form-group">
+        <label class="form-label">Summary</label>
+        <textarea class="form-textarea" id="log-summary" placeholder="What was accomplished this session..."></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Technical Details</label>
+        <textarea class="form-textarea" id="log-technical" placeholder="Detailed notes, decisions, code highlights..." style="min-height:150px;"></textarea>
+        <div class="admin-hint">Supports basic HTML: &lt;code&gt;, &lt;strong&gt;, &lt;br&gt;</div>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Research Alignment</label>
+        <textarea class="form-textarea" id="log-research" placeholder="How does this connect to RQ1, RQ2, or RQ3?"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Challenges &amp; Solutions</label>
+        <textarea class="form-textarea" id="log-challenges" placeholder="What broke, what was difficult, how was it solved?"></textarea>
+      </div>
+      <div class="form-group">
+        <label class="form-label">Evidence Collected (one per line)</label>
+        <textarea class="form-textarea" id="log-evidence" placeholder="Screenshot: DA_Ammo_9mm in editor&#10;Screenshot: 2-player PIE clean output log"></textarea>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;">
+        <button class="btn btn-primary" onclick="saveLog()">Save Entry</button>
+        <span id="save-confirm" style="font-family:var(--mono);font-size:11px;color:var(--green);display:none;">Saved.</span>
+      </div>
+    </div>
+
+    <!-- EXISTING -->
+    <div class="admin-section">
+      <div class="admin-section-title">Existing Entries</div>
+      <div id="admin-log-list"><p style="color:var(--text-dim);font-size:13px;">No entries yet.</p></div>
+    </div>
+  </div>
+</div>
+
+</div><!-- /main-inner -->
+</main>
+</div><!-- /layout -->
+
+<script>
+const STORAGE_KEY = 'ballistics_devlogs_v1';
+const ADMIN_PW    = 'braz132';
+let adminUnlocked = false;
+
+function getLogs() {
+  try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
+  catch(e) { return []; }
+}
+function saveLogs(logs) { localStorage.setItem(STORAGE_KEY, JSON.stringify(logs)); }
+
+function showPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  const target = document.getElementById('page-' + id);
+  if (target) target.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n => {
+    if ((n.getAttribute('onclick') || '').includes("'" + id + "'")) n.classList.add('active');
+  });
+  document.getElementById('sidebar').classList.remove('open');
+  document.getElementById('mobOverlay').classList.remove('open');
+  window.scrollTo(0, 0);
+  if (id === 'logs') renderLogs();
+  if (id === 'dashboard') renderDashboard();
+  if (id === 'admin' && adminUnlocked) renderAdminList();
+}
+
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+  document.getElementById('mobOverlay').classList.toggle('open');
+}
+
+function toggleCollapsible(btn) {
+  btn.classList.toggle('open');
+  btn.nextElementSibling.classList.toggle('open');
+}
+
+function toggleCheck(el) {
+  const done = el.classList.contains('done');
+  if (done) { el.classList.remove('done'); el.textContent = ''; el.closest('li').classList.remove('done-item'); }
+  else { el.classList.add('done'); el.textContent = '✓'; el.closest('li').classList.add('done-item'); }
+}
+
+function esc(str) {
+  if (!str) return '';
+  return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+function buildLogCard(log, isAdmin) {
+  const statusBadge = log.status === 'done'
+    ? '<span class="badge badge-done">Complete</span>'
+    : '<span class="badge badge-wip">In Progress</span>';
+  const phaseBadge = `<span class="badge badge-phase">${esc(log.phase)}</span>`;
+  const dateStr = log.date ? `<span style="font-family:var(--mono);font-size:10px;color:var(--text-dim);">${log.date}</span>` : '';
+  const tags = (log.tags||'').split(',').map(t=>t.trim()).filter(Boolean)
+    .map(t=>`<span class="tag">${esc(t)}</span>`).join('');
+
+  let body = '';
+  if (log.summary) body += `<div class="log-section"><div class="log-section-title">Summary</div><p style="font-size:13px;">${esc(log.summary)}</p></div>`;
+  if (log.technical) body += `<div class="log-section"><button class="collapsible-btn" onclick="toggleCollapsible(this)">Technical Details<span class="collapsible-arrow">▼</span></button><div class="collapsible-content"><div style="padding-top:10px;font-size:13px;color:var(--text-mid);">${log.technical}</div></div></div>`;
+  if (log.research) body += `<div class="log-section"><button class="collapsible-btn" onclick="toggleCollapsible(this)">Research Alignment<span class="collapsible-arrow">▼</span></button><div class="collapsible-content"><p style="padding-top:10px;font-size:13px;">${esc(log.research)}</p></div></div>`;
+  if (log.challenges) body += `<div class="log-section"><button class="collapsible-btn" onclick="toggleCollapsible(this)">Challenges &amp; Solutions<span class="collapsible-arrow">▼</span></button><div class="collapsible-content"><p style="padding-top:10px;font-size:13px;">${esc(log.challenges)}</p></div></div>`;
+  if (log.evidence) {
+    const items = log.evidence.split('\n').map(l=>l.trim()).filter(Boolean)
+      .map(l=>`<li><span class="check-box done" onclick="toggleCheck(this)">✓</span><span>${esc(l)}</span></li>`).join('');
+    body += `<div class="log-section"><div class="log-section-title">Evidence Collected</div><ul class="checklist">${items}</ul></div>`;
+  }
+
+  const del = isAdmin ? `<button class="btn btn-danger" onclick="deleteLog('${log.id}')">Delete</button>` : '';
+
+  return `<div class="log-card">
+    <div class="log-card-header">
+      <div>
+        <div class="log-card-meta">${dateStr}${statusBadge}${phaseBadge}</div>
+        <div class="log-card-title">${esc(log.title)}</div>
+        ${tags ? `<div class="tags" style="margin-top:7px;">${tags}</div>` : ''}
+      </div>
+      ${del}
+    </div>
+    <div class="log-card-body">${body}</div>
+  </div>`;
+}
+
+function renderLogs() {
+  const logs = getLogs();
+  const c = document.getElementById('logs-container');
+  if (!logs.length) { c.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><p>No log entries yet. Add the first one from the <strong>Admin</strong> panel.</p></div>'; return; }
+  c.innerHTML = [...logs].sort((a,b)=>new Date(b.date)-new Date(a.date)).map(l=>buildLogCard(l,false)).join('');
+}
+
+function renderDashboard() {
+  const logs = getLogs();
+  document.getElementById('dash-log-count').textContent = logs.length;
+  document.getElementById('nav-log-count').textContent = logs.length;
+  const c = document.getElementById('dash-recent-logs');
+  if (!logs.length) { c.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><p>No log entries yet. Add the first one in the <strong>Admin</strong> panel.</p></div>'; return; }
+  c.innerHTML = [...logs].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,3).map(l=>buildLogCard(l,false)).join('');
+}
+
+function renderAdminList() {
+  const logs = getLogs();
+  const c = document.getElementById('admin-log-list');
+  if (!logs.length) { c.innerHTML = '<p style="color:var(--text-dim);font-size:13px;">No entries yet.</p>'; return; }
+  c.innerHTML = [...logs].sort((a,b)=>new Date(b.date)-new Date(a.date)).map(l=>buildLogCard(l,true)).join('');
+}
+
+function adminLogin() {
+  if (document.getElementById('admin-pw-input').value === ADMIN_PW) {
+    adminUnlocked = true;
+    document.getElementById('admin-login-view').style.display = 'none';
+    document.getElementById('admin-panel-view').style.display = 'block';
+    document.getElementById('log-date').value = new Date().toISOString().split('T')[0];
+    renderAdminList();
+  } else {
+    document.getElementById('admin-error').style.display = 'block';
+    document.getElementById('admin-pw-input').value = '';
+  }
+}
+
+function adminLogout() {
+  adminUnlocked = false;
+  document.getElementById('admin-login-view').style.display = 'block';
+  document.getElementById('admin-panel-view').style.display = 'none';
+  document.getElementById('admin-pw-input').value = '';
+  document.getElementById('admin-error').style.display = 'none';
+}
+
+function saveLog() {
+  const title = document.getElementById('log-title').value.trim();
+  if (!title) { alert('Title is required.'); return; }
+  const log = {
+    id: Date.now().toString(),
+    title,
+    date:       document.getElementById('log-date').value,
+    phase:      document.getElementById('log-phase').value,
+    status:     document.getElementById('log-status').value,
+    tags:       document.getElementById('log-tags').value,
+    summary:    document.getElementById('log-summary').value.trim(),
+    technical:  document.getElementById('log-technical').value.trim(),
+    research:   document.getElementById('log-research').value.trim(),
+    challenges: document.getElementById('log-challenges').value.trim(),
+    evidence:   document.getElementById('log-evidence').value.trim(),
+  };
+  const logs = getLogs();
+  logs.push(log);
+  saveLogs(logs);
+  ['log-title','log-tags','log-summary','log-technical','log-research','log-challenges','log-evidence']
+    .forEach(id => document.getElementById(id).value = '');
+  document.getElementById('log-date').value = new Date().toISOString().split('T')[0];
+  const c = document.getElementById('save-confirm');
+  c.style.display = 'inline';
+  setTimeout(() => c.style.display = 'none', 2500);
+  renderAdminList();
+  renderDashboard();
+}
+
+function deleteLog(id) {
+  if (!confirm('Delete this entry?')) return;
+  saveLogs(getLogs().filter(l => l.id !== id));
+  renderAdminList();
+  renderDashboard();
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  renderDashboard();
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') {
+      document.getElementById('sidebar').classList.remove('open');
+      document.getElementById('mobOverlay').classList.remove('open');
+    }
+  });
+});
+</script>
+</body>
+</html>
