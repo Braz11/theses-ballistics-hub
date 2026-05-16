@@ -1,0 +1,32 @@
+{
+  "logs": [
+    {
+      "id": "1778959440031",
+      "title": "Project Foundation & Data Architecture",
+      "date": "2003-01-21",
+      "phase": "Phase 1",
+      "status": "done",
+      "tags": "UE5, C++, Structs, Data Assets, Replication, Environment Manager",
+      "summary": "Established the full data layer for the ballistic simulation system. Created the two core structs, both data asset classes, filled the first three assets with real physical values, deployed AEnvironmentManager into the test level with replication configured, and verified a clean 2-player PIE listen server session.",
+      "technical": "Defined FBallisticProjectile to hold per-step runtime state: world-space position, velocity vector, kinetic energy, elapsed simulation time, and step count. Defined FBallisticImpact to capture collision results: hit location, surface normal, entry and exit velocity, penetration and ricochet flags, and a reference to the hit material data asset. Both structs are USTRUCT(BlueprintType) for replication and Blueprint compatibility.\nUAmmoData encodes the physical constants required by the drag formula: mass (0.008 kg), initial velocity (370 m/s), drag coefficient (0.295), and cross-sectional area (6.36e-5 m²). Values sourced from exterior ballistics literature for a standard 9mm Parabellum round. UMaterialPenetrationData encodes surface resistance: density (kg/m³), estimated thickness (m), friction factor per metre, and ricochet angle threshold. Data-driven design — new ammo types or materials require zero code changes.\nAEnvironmentManager is a replicated AActor placed once in the level with bAlwaysRelevant = true. Exposes AirDensityKgM3, WindVectorMS, and TemperatureCelsius via DOREPLIFETIME. A static Get(UWorld*) helper returns the single instance. SetWeatherPreset() switches between ISA sea level (1.225 kg/m³), high altitude (0.9 kg/m³), and dense atmosphere (1.5 kg/m³) — the three test conditions for the RQ1 air density variation experiment.",
+      "research": "Today's work establishes the data layer underpinning all three research questions. UAmmoData encodes the physical constants for RQ1 (drag and energy loss modelling). UMaterialPenetrationData encodes the surface resistance properties for RQ2 (variable-density penetration). AEnvironmentManager implements dynamic air density — identified in the SLR as a gap in current game implementations where most engines use a hardcoded constant. Making air density a runtime replicated variable directly addresses this gap and enables the controlled experiment planned for Phase 5.",
+      "challenges": "Circular dependency between FBallisticImpact and UMaterialPenetrationData: \nresolved by forward-declaring the class in BallisticImpact.h and including the full header only in .cpp files that use its methods.",
+      "evidence": "Screenshot: Project folder structure in Windows Explorer\nScreenshot: DA_Ammo_9mm all fields filled in editor\nScreenshot: DA_Material_Concrete filled in editor\nScreenshot: DA_Material_Wood filled in editor\nScreenshot: AEnvironmentManager placed in L_BallisticsTestRange outliner\nScreenshot: AEnvironmentManager Details panel showing AirDensityKgM3 = 1.225\nScreenshot: PIE 2-player listen server, clean Output Log"
+    }
+  ],
+  "progress": {
+    "phase": "1",
+    "subsystems": 0,
+    "pct": 0,
+    "p1": "wip",
+    "p2": "todo",
+    "p3": "todo",
+    "p4": "todo",
+    "p5": "todo",
+    "focusText": "Phase 1 — Project Foundation. UE5 C++ module structure, core structs, data asset classes, and AEnvironmentManager in the test level.",
+    "focusTags": "UE5, C++, Data Assets, Replication",
+    "nextText": "Ballistic Simulation Core — UBallisticSimulator long-step loop, drag + gravity integration, debug HUD trajectory draw, per-step CSV logging.",
+    "nextTags": "UBallisticSimulator, PhysicsMaterial, DebugHUD"
+  },
+  "exported": "2026-05-16T19:24:16.387Z"
+}
