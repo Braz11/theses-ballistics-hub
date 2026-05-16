@@ -287,19 +287,12 @@ tr:nth-child(even) td { background:var(--surface2); }
       <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M2 3h6a4 4 0 014 4v14a3 3 0 00-3-3H2z"/><path d="M22 3h-6a4 4 0 00-4 4v14a3 3 0 013-3h7z"/></svg>
       Research Questions
     </a>
-    <a class="nav-item" onclick="showPage('evidence')">
-      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>
-      Evidence Tracker
-    </a>
-    <div class="nav-group-label">Admin</div>
-    <a class="nav-item" onclick="showPage('admin')">
-      <svg class="nav-icon" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0110 0v4"/></svg>
-      Admin
-    </a>
+    <!-- hidden triple-click zone -->
+    <div id="secret-zone" onclick="handleSecretClick()" style="height:32px;cursor:default;"></div>
   </nav>
   <div class="sidebar-footer">
     <div class="sidebar-status-label">Status</div>
-    <div class="sidebar-status-val">Phase 1 · In Progress</div>
+    <div class="sidebar-status-val" id="sidebar-status-val">Phase 1 · In Progress</div>
   </div>
 </aside>
 
@@ -317,8 +310,8 @@ tr:nth-child(even) td { background:var(--surface2); }
   <div class="stat-row">
     <div class="stat-card">
       <div class="stat-label">Current Phase</div>
-      <div class="stat-value" style="font-size:15px;margin-top:3px;">Phase 1</div>
-      <div class="stat-sub">Foundation &amp; Data Layer</div>
+      <div class="stat-value" id="dash-phase" style="font-size:15px;margin-top:3px;">Phase 1</div>
+      <div class="stat-sub" id="dash-phase-sub">Foundation &amp; Data Layer</div>
     </div>
     <div class="stat-card">
       <div class="stat-label">Log Entries</div>
@@ -327,31 +320,31 @@ tr:nth-child(even) td { background:var(--surface2); }
     </div>
     <div class="stat-card">
       <div class="stat-label">Subsystems</div>
-      <div class="stat-value">0<span style="font-size:14px;color:var(--text-dim)">/5</span></div>
+      <div class="stat-value"><span id="dash-subsystems">0</span><span style="font-size:14px;color:var(--text-dim)">/5</span></div>
       <div class="stat-sub">complete</div>
     </div>
     <div class="stat-card">
-      <div class="stat-label">Status</div>
-      <div class="stat-value" style="font-size:14px;margin-top:3px;color:var(--amber);">Active</div>
-      <div class="stat-sub">development</div>
+      <div class="stat-label">Overall Progress</div>
+      <div class="stat-value" id="dash-progress-pct" style="font-size:18px;margin-top:3px;color:var(--accent);">0%</div>
+      <div class="stat-sub" id="dash-progress-sub">Phase 1 of 5</div>
     </div>
   </div>
   <div class="card-grid card-grid-2" style="margin-bottom:24px;">
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;">
         <h3 style="margin:0;">Current Focus</h3>
-        <span class="badge badge-wip">In Progress</span>
+        <span class="badge badge-wip" id="dash-focus-badge">In Progress</span>
       </div>
-      <p style="font-size:13px;">Phase 1 — Project Foundation. UE5 C++ module structure, core structs (<code>FBallisticProjectile</code>, <code>FBallisticImpact</code>), data asset classes (<code>UAmmoData</code>, <code>UMaterialPenetrationData</code>), and <code>AEnvironmentManager</code> in the test level.</p>
-      <div class="tags"><span class="tag">UE5</span><span class="tag">C++</span><span class="tag">Data Assets</span><span class="tag">Replication</span></div>
+      <p style="font-size:13px;" id="dash-focus-text">Phase 1 — Project Foundation. UE5 C++ module structure, core structs, data asset classes, and AEnvironmentManager in the test level.</p>
+      <div class="tags" id="dash-focus-tags"><span class="tag">UE5</span><span class="tag">C++</span><span class="tag">Data Assets</span><span class="tag">Replication</span></div>
     </div>
     <div class="card">
       <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;">
         <h3 style="margin:0;">Up Next</h3>
-        <span class="badge badge-todo">Phase 2</span>
+        <span class="badge badge-todo" id="dash-next-badge">Phase 2</span>
       </div>
-      <p style="font-size:13px;">Ballistic Simulation Core — <code>UBallisticSimulator</code> long-step loop, drag + gravity integration, debug HUD trajectory draw, per-step CSV logging.</p>
-      <div class="tags"><span class="tag">UBallisticSimulator</span><span class="tag">PhysicsMaterial</span><span class="tag">DebugHUD</span></div>
+      <p style="font-size:13px;" id="dash-next-text">Ballistic Simulation Core — UBallisticSimulator long-step loop, drag + gravity integration, debug HUD trajectory draw, per-step CSV logging.</p>
+      <div class="tags" id="dash-next-tags"><span class="tag">UBallisticSimulator</span><span class="tag">PhysicsMaterial</span><span class="tag">DebugHUD</span></div>
     </div>
   </div>
   <h2>Recent Log Entries</h2>
@@ -558,7 +551,7 @@ flowchart TD
   </div>
   <div style="margin-top:18px;">
   <div class="phase-block">
-    <div class="phase-block-head"><span class="phase-num">PHASE 1</span><span class="phase-title">Foundation — Structs, Data Assets, Environment</span><span class="badge badge-wip">In Progress</span></div>
+    <div class="phase-block-head" id="roadmap-phase-head-1"><span class="phase-num">PHASE 1</span><span class="phase-title">Foundation — Structs, Data Assets, Environment</span><span class="badge badge-wip phase-status-badge">In Progress</span></div>
     <div class="phase-body">
       <div class="task-row"><span class="badge badge-must">MUST</span><span>UE5 C++ project, module setup, folder structure</span></div>
       <div class="task-row"><span class="badge badge-must">MUST</span><span><code>FBallisticProjectile</code> and <code>FBallisticImpact</code> structs defined and compiling</span></div>
@@ -570,7 +563,7 @@ flowchart TD
     </div>
   </div>
   <div class="phase-block">
-    <div class="phase-block-head"><span class="phase-num">PHASE 2</span><span class="phase-title">Ballistic Simulation Core</span><span class="badge badge-todo">Upcoming</span></div>
+    <div class="phase-block-head" id="roadmap-phase-head-2"><span class="phase-num">PHASE 2</span><span class="phase-title">Ballistic Simulation Core</span><span class="badge badge-todo phase-status-badge">Upcoming</span></div>
     <div class="phase-body">
       <div class="task-row"><span class="badge badge-must">MUST</span><span><code>UBallisticSimulator</code> — long-step loop: drag + gravity per 5ms step, line trace per step</span></div>
       <div class="task-row"><span class="badge badge-must">MUST</span><span><code>ComputeDragAcceleration()</code> — Fd = 0.5 × ρ × v² × Cd × A</span></div>
@@ -582,7 +575,7 @@ flowchart TD
     </div>
   </div>
   <div class="phase-block">
-    <div class="phase-block-head"><span class="phase-num">PHASE 3</span><span class="phase-title">Penetration Resolver</span><span class="badge badge-todo">Upcoming</span></div>
+    <div class="phase-block-head" id="roadmap-phase-head-3"><span class="phase-num">PHASE 3</span><span class="phase-title">Penetration Resolver</span><span class="badge badge-todo phase-status-badge">Upcoming</span></div>
     <div class="phase-body">
       <div class="task-row"><span class="badge badge-must">MUST</span><span><code>UPenetrationResolver</code> — impact angle, energy threshold, exit velocity, ricochet flag</span></div>
       <div class="task-row"><span class="badge badge-must">MUST</span><span>Physical material tags bound to data assets via <code>SurfaceTag</code></span></div>
@@ -592,7 +585,7 @@ flowchart TD
     </div>
   </div>
   <div class="phase-block">
-    <div class="phase-block-head"><span class="phase-num">PHASE 4</span><span class="phase-title">Weapon Component + Multiplayer</span><span class="badge badge-todo">Upcoming</span></div>
+    <div class="phase-block-head" id="roadmap-phase-head-4"><span class="phase-num">PHASE 4</span><span class="phase-title">Weapon Component + Multiplayer</span><span class="badge badge-todo phase-status-badge">Upcoming</span></div>
     <div class="phase-body">
       <div class="task-row"><span class="badge badge-must">MUST</span><span><code>UWeaponComponent</code> — <code>ServerFire</code> RPC, <code>MulticastImpact</code>, server-side simulator call</span></div>
       <div class="task-row"><span class="badge badge-must">MUST</span><span>Hooked to PlayerController input in <code>BP_TestWeapon</code></span></div>
@@ -603,7 +596,7 @@ flowchart TD
     </div>
   </div>
   <div class="phase-block">
-    <div class="phase-block-head"><span class="phase-num">PHASE 5</span><span class="phase-title">Benchmarking, Evidence &amp; Polish</span><span class="badge badge-todo">Upcoming</span></div>
+    <div class="phase-block-head" id="roadmap-phase-head-5"><span class="phase-num">PHASE 5</span><span class="phase-title">Benchmarking, Evidence &amp; Polish</span><span class="badge badge-todo phase-status-badge">Upcoming</span></div>
     <div class="phase-body">
       <div class="task-row"><span class="badge badge-must">MUST</span><span>50 simultaneous projectiles stress test — CPU cost via UE5 Insights</span></div>
       <div class="task-row"><span class="badge badge-must">MUST</span><span>Air density variation (0.8 / 1.225 / 1.5 kg/m³) — trajectory drop table</span></div>
@@ -725,9 +718,117 @@ flowchart TD
   <div id="admin-panel-view" style="display:none;">
     <div class="page-header">
       <div class="page-eyebrow">Admin · Unlocked</div>
-      <h1><strong>Manage Dev Logs</strong></h1>
+      <h1><strong>Admin Panel</strong></h1>
       <div style="margin-top:10px;">
         <button class="btn btn-ghost" onclick="adminLogout()">Lock &amp; Exit</button>
+      </div>
+    </div>
+
+    <!-- PROGRESS CONTROL -->
+    <div class="admin-section">
+      <div class="admin-section-title">Thesis Progress Control</div>
+      <p style="font-size:13px;color:var(--text-mid);margin-bottom:18px;">Changes here update the Dashboard, sidebar, and Roadmap instantly and persist across sessions.</p>
+
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px;margin-bottom:18px;">
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Active Phase</label>
+          <select class="form-select" id="prog-phase">
+            <option value="1">Phase 1 — Foundation</option>
+            <option value="2">Phase 2 — Ballistic Simulation</option>
+            <option value="3">Phase 3 — Penetration Resolver</option>
+            <option value="4">Phase 4 — Weapon + Multiplayer</option>
+            <option value="5">Phase 5 — Benchmarking &amp; Polish</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Subsystems Complete</label>
+          <select class="form-select" id="prog-subsystems">
+            <option value="0">0 / 5</option>
+            <option value="1">1 / 5</option>
+            <option value="2">2 / 5</option>
+            <option value="3">3 / 5</option>
+            <option value="4">4 / 5</option>
+            <option value="5">5 / 5</option>
+          </select>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Overall Progress %</label>
+          <input class="form-input" type="number" id="prog-pct" min="0" max="100" value="0" placeholder="0–100">
+        </div>
+      </div>
+
+      <!-- Phase statuses -->
+      <div style="margin-bottom:16px;">
+        <div class="form-label" style="display:block;margin-bottom:10px;">Phase Statuses</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:8px;">
+          <div class="form-group" style="margin:0;">
+            <label class="form-label" style="font-size:9px;">Phase 1</label>
+            <select class="form-select" id="prog-p1">
+              <option value="done">Complete</option>
+              <option value="wip" selected>In Progress</option>
+              <option value="todo">Upcoming</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label" style="font-size:9px;">Phase 2</label>
+            <select class="form-select" id="prog-p2">
+              <option value="done">Complete</option>
+              <option value="wip">In Progress</option>
+              <option value="todo" selected>Upcoming</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label" style="font-size:9px;">Phase 3</label>
+            <select class="form-select" id="prog-p3">
+              <option value="done">Complete</option>
+              <option value="wip">In Progress</option>
+              <option value="todo" selected>Upcoming</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label" style="font-size:9px;">Phase 4</label>
+            <select class="form-select" id="prog-p4">
+              <option value="done">Complete</option>
+              <option value="wip">In Progress</option>
+              <option value="todo" selected>Upcoming</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0;">
+            <label class="form-label" style="font-size:9px;">Phase 5</label>
+            <select class="form-select" id="prog-p5">
+              <option value="done">Complete</option>
+              <option value="wip">In Progress</option>
+              <option value="todo" selected>Upcoming</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- Current focus and up next -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Current Focus Text</label>
+          <textarea class="form-textarea" id="prog-focus" style="min-height:80px;" placeholder="Describe what is currently being worked on..."></textarea>
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Up Next Text</label>
+          <textarea class="form-textarea" id="prog-next" style="min-height:80px;" placeholder="Describe what comes after the current work..."></textarea>
+        </div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:16px;">
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Current Focus Tags (comma separated)</label>
+          <input class="form-input" id="prog-focus-tags" placeholder="UE5, C++, Data Assets">
+        </div>
+        <div class="form-group" style="margin:0;">
+          <label class="form-label">Up Next Tags (comma separated)</label>
+          <input class="form-input" id="prog-next-tags" placeholder="UBallisticSimulator, DebugHUD">
+        </div>
+      </div>
+
+      <div style="display:flex;align-items:center;gap:14px;">
+        <button class="btn btn-primary" onclick="saveProgress()">Save Progress</button>
+        <span id="prog-confirm" style="font-family:var(--mono);font-size:11px;color:var(--green);display:none;">Saved — dashboard updated.</span>
       </div>
     </div>
 
@@ -803,16 +904,145 @@ flowchart TD
 </div><!-- /layout -->
 
 <script>
-const STORAGE_KEY = 'ballistics_devlogs_v1';
-const ADMIN_PW    = 'braz132';
-let adminUnlocked = false;
+// ── STORAGE KEYS ─────────────────────────────────────
+const STORAGE_KEY    = 'ballistics_devlogs_v1';
+const PROGRESS_KEY   = 'ballistics_progress_v1';
+const ADMIN_PW       = 'braz132';
+let adminUnlocked    = false;
 
+// ── PHASE LABELS ──────────────────────────────────────
+const PHASE_LABELS = {
+  '1': { name: 'Phase 1', sub: 'Foundation & Data Layer' },
+  '2': { name: 'Phase 2', sub: 'Ballistic Simulation Core' },
+  '3': { name: 'Phase 3', sub: 'Penetration Resolver' },
+  '4': { name: 'Phase 4', sub: 'Weapon + Multiplayer' },
+  '5': { name: 'Phase 5', sub: 'Benchmarking & Polish' },
+};
+
+const STATUS_BADGE = {
+  done: '<span class="badge badge-done">Complete</span>',
+  wip:  '<span class="badge badge-wip">In Progress</span>',
+  todo: '<span class="badge badge-todo">Upcoming</span>',
+};
+
+// ── DEFAULT PROGRESS ──────────────────────────────────
+const DEFAULT_PROGRESS = {
+  phase: '1',
+  subsystems: 0,
+  pct: 0,
+  p1: 'wip', p2: 'todo', p3: 'todo', p4: 'todo', p5: 'todo',
+  focusText:  'Phase 1 — Project Foundation. UE5 C++ module structure, core structs, data asset classes, and AEnvironmentManager in the test level.',
+  focusTags:  'UE5, C++, Data Assets, Replication',
+  nextText:   'Ballistic Simulation Core — UBallisticSimulator long-step loop, drag + gravity integration, debug HUD trajectory draw, per-step CSV logging.',
+  nextTags:   'UBallisticSimulator, PhysicsMaterial, DebugHUD',
+};
+
+// ── PROGRESS STORAGE ──────────────────────────────────
+function getProgress() {
+  try { return { ...DEFAULT_PROGRESS, ...JSON.parse(localStorage.getItem(PROGRESS_KEY) || '{}') }; }
+  catch(e) { return { ...DEFAULT_PROGRESS }; }
+}
+function storeProgress(p) { localStorage.setItem(PROGRESS_KEY, JSON.stringify(p)); }
+
+// ── LOGS STORAGE ──────────────────────────────────────
 function getLogs() {
   try { return JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); }
   catch(e) { return []; }
 }
 function saveLogs(logs) { localStorage.setItem(STORAGE_KEY, JSON.stringify(logs)); }
 
+// ── APPLY PROGRESS TO ALL UI ──────────────────────────
+function applyProgress(p) {
+  const pl = PHASE_LABELS[p.phase] || PHASE_LABELS['1'];
+
+  // Sidebar
+  const sval = document.getElementById('sidebar-status-val');
+  if (sval) sval.textContent = pl.name + ' · ' + (p['p'+p.phase] === 'done' ? 'Complete' : p['p'+p.phase] === 'wip' ? 'In Progress' : 'Upcoming');
+
+  // Dashboard stat cards
+  const dp = document.getElementById('dash-phase');
+  if (dp) dp.textContent = pl.name;
+  const dps = document.getElementById('dash-phase-sub');
+  if (dps) dps.textContent = pl.sub;
+  const ds = document.getElementById('dash-subsystems');
+  if (ds) ds.textContent = p.subsystems;
+  const dpct = document.getElementById('dash-progress-pct');
+  if (dpct) dpct.textContent = p.pct + '%';
+  const dpsub = document.getElementById('dash-progress-sub');
+  if (dpsub) dpsub.textContent = 'Phase ' + p.phase + ' of 5';
+
+  // Current focus card
+  const ft = document.getElementById('dash-focus-text');
+  if (ft) ft.textContent = p.focusText;
+  const fb = document.getElementById('dash-focus-badge');
+  if (fb) {
+    const st = p['p' + p.phase];
+    fb.className = 'badge ' + (st === 'done' ? 'badge-done' : st === 'wip' ? 'badge-wip' : 'badge-todo');
+    fb.textContent = st === 'done' ? 'Complete' : st === 'wip' ? 'In Progress' : 'Upcoming';
+  }
+  const ftags = document.getElementById('dash-focus-tags');
+  if (ftags) ftags.innerHTML = p.focusTags.split(',').map(t => `<span class="tag">${esc(t.trim())}</span>`).join('');
+
+  // Up next card
+  const nt = document.getElementById('dash-next-text');
+  if (nt) nt.textContent = p.nextText;
+  const nb = document.getElementById('dash-next-badge');
+  if (nb) {
+    const nextPhase = String(Math.min(parseInt(p.phase) + 1, 5));
+    nb.className = 'badge badge-todo';
+    nb.textContent = 'Phase ' + nextPhase;
+  }
+  const ntags = document.getElementById('dash-next-tags');
+  if (ntags) ntags.innerHTML = p.nextTags.split(',').map(t => `<span class="tag">${esc(t.trim())}</span>`).join('');
+
+  // Roadmap phase badges
+  [1,2,3,4,5].forEach(n => {
+    const head = document.getElementById('roadmap-phase-head-' + n);
+    if (!head) return;
+    const badgeEl = head.querySelector('.phase-status-badge');
+    if (badgeEl) {
+      const st = p['p' + n];
+      badgeEl.className = 'badge phase-status-badge ' + (st === 'done' ? 'badge-done' : st === 'wip' ? 'badge-wip' : 'badge-todo');
+      badgeEl.textContent = st === 'done' ? 'Complete' : st === 'wip' ? 'In Progress' : 'Upcoming';
+    }
+  });
+}
+
+// ── POPULATE ADMIN PROGRESS FORM ──────────────────────
+function populateProgressForm(p) {
+  const set = (id, val) => { const el = document.getElementById(id); if (el) el.value = val; };
+  set('prog-phase',      p.phase);
+  set('prog-subsystems', p.subsystems);
+  set('prog-pct',        p.pct);
+  set('prog-p1', p.p1); set('prog-p2', p.p2); set('prog-p3', p.p3);
+  set('prog-p4', p.p4); set('prog-p5', p.p5);
+  set('prog-focus',      p.focusText);
+  set('prog-next',       p.nextText);
+  set('prog-focus-tags', p.focusTags);
+  set('prog-next-tags',  p.nextTags);
+}
+
+// ── SAVE PROGRESS FROM FORM ───────────────────────────
+function saveProgress() {
+  const get = id => { const el = document.getElementById(id); return el ? el.value : ''; };
+  const p = {
+    phase:      get('prog-phase'),
+    subsystems: parseInt(get('prog-subsystems')) || 0,
+    pct:        Math.min(100, Math.max(0, parseInt(get('prog-pct')) || 0)),
+    p1: get('prog-p1'), p2: get('prog-p2'), p3: get('prog-p3'),
+    p4: get('prog-p4'), p5: get('prog-p5'),
+    focusText:  get('prog-focus').trim() || DEFAULT_PROGRESS.focusText,
+    focusTags:  get('prog-focus-tags').trim() || DEFAULT_PROGRESS.focusTags,
+    nextText:   get('prog-next').trim() || DEFAULT_PROGRESS.nextText,
+    nextTags:   get('prog-next-tags').trim() || DEFAULT_PROGRESS.nextTags,
+  };
+  storeProgress(p);
+  applyProgress(p);
+  const c = document.getElementById('prog-confirm');
+  if (c) { c.style.display = 'inline'; setTimeout(() => c.style.display = 'none', 2500); }
+}
+
+// ── PAGE NAV ──────────────────────────────────────────
 function showPage(id) {
   document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
   document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
@@ -826,7 +1056,7 @@ function showPage(id) {
   window.scrollTo(0, 0);
   if (id === 'logs') renderLogs();
   if (id === 'dashboard') renderDashboard();
-  if (id === 'admin' && adminUnlocked) renderAdminList();
+  if (id === 'admin' && adminUnlocked) { renderAdminList(); populateProgressForm(getProgress()); }
 }
 
 function toggleSidebar() {
@@ -850,6 +1080,7 @@ function esc(str) {
   return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
 }
 
+// ── LOG CARD ──────────────────────────────────────────
 function buildLogCard(log, isAdmin) {
   const statusBadge = log.status === 'done'
     ? '<span class="badge badge-done">Complete</span>'
@@ -860,9 +1091,9 @@ function buildLogCard(log, isAdmin) {
     .map(t=>`<span class="tag">${esc(t)}</span>`).join('');
 
   let body = '';
-  if (log.summary) body += `<div class="log-section"><div class="log-section-title">Summary</div><p style="font-size:13px;">${esc(log.summary)}</p></div>`;
-  if (log.technical) body += `<div class="log-section"><button class="collapsible-btn" onclick="toggleCollapsible(this)">Technical Details<span class="collapsible-arrow">▼</span></button><div class="collapsible-content"><div style="padding-top:10px;font-size:13px;color:var(--text-mid);">${log.technical}</div></div></div>`;
-  if (log.research) body += `<div class="log-section"><button class="collapsible-btn" onclick="toggleCollapsible(this)">Research Alignment<span class="collapsible-arrow">▼</span></button><div class="collapsible-content"><p style="padding-top:10px;font-size:13px;">${esc(log.research)}</p></div></div>`;
+  if (log.summary)    body += `<div class="log-section"><div class="log-section-title">Summary</div><p style="font-size:13px;">${esc(log.summary)}</p></div>`;
+  if (log.technical)  body += `<div class="log-section"><button class="collapsible-btn" onclick="toggleCollapsible(this)">Technical Details<span class="collapsible-arrow">▼</span></button><div class="collapsible-content"><div style="padding-top:10px;font-size:13px;color:var(--text-mid);">${log.technical}</div></div></div>`;
+  if (log.research)   body += `<div class="log-section"><button class="collapsible-btn" onclick="toggleCollapsible(this)">Research Alignment<span class="collapsible-arrow">▼</span></button><div class="collapsible-content"><p style="padding-top:10px;font-size:13px;">${esc(log.research)}</p></div></div>`;
   if (log.challenges) body += `<div class="log-section"><button class="collapsible-btn" onclick="toggleCollapsible(this)">Challenges &amp; Solutions<span class="collapsible-arrow">▼</span></button><div class="collapsible-content"><p style="padding-top:10px;font-size:13px;">${esc(log.challenges)}</p></div></div>`;
   if (log.evidence) {
     const items = log.evidence.split('\n').map(l=>l.trim()).filter(Boolean)
@@ -885,6 +1116,7 @@ function buildLogCard(log, isAdmin) {
   </div>`;
 }
 
+// ── RENDER FUNCTIONS ──────────────────────────────────
 function renderLogs() {
   const logs = getLogs();
   const c = document.getElementById('logs-container');
@@ -895,7 +1127,8 @@ function renderLogs() {
 function renderDashboard() {
   const logs = getLogs();
   document.getElementById('dash-log-count').textContent = logs.length;
-  document.getElementById('nav-log-count').textContent = logs.length;
+  document.getElementById('nav-log-count').textContent  = logs.length;
+  applyProgress(getProgress());
   const c = document.getElementById('dash-recent-logs');
   if (!logs.length) { c.innerHTML = '<div class="empty-state"><div class="empty-state-icon">📋</div><p>No log entries yet. Add the first one in the <strong>Admin</strong> panel.</p></div>'; return; }
   c.innerHTML = [...logs].sort((a,b)=>new Date(b.date)-new Date(a.date)).slice(0,3).map(l=>buildLogCard(l,false)).join('');
@@ -908,13 +1141,15 @@ function renderAdminList() {
   c.innerHTML = [...logs].sort((a,b)=>new Date(b.date)-new Date(a.date)).map(l=>buildLogCard(l,true)).join('');
 }
 
+// ── ADMIN AUTH ────────────────────────────────────────
 function adminLogin() {
   if (document.getElementById('admin-pw-input').value === ADMIN_PW) {
     adminUnlocked = true;
-    document.getElementById('admin-login-view').style.display = 'none';
-    document.getElementById('admin-panel-view').style.display = 'block';
+    document.getElementById('admin-login-view').style.display  = 'none';
+    document.getElementById('admin-panel-view').style.display  = 'block';
     document.getElementById('log-date').value = new Date().toISOString().split('T')[0];
     renderAdminList();
+    populateProgressForm(getProgress());
   } else {
     document.getElementById('admin-error').style.display = 'block';
     document.getElementById('admin-pw-input').value = '';
@@ -923,12 +1158,13 @@ function adminLogin() {
 
 function adminLogout() {
   adminUnlocked = false;
-  document.getElementById('admin-login-view').style.display = 'block';
-  document.getElementById('admin-panel-view').style.display = 'none';
+  document.getElementById('admin-login-view').style.display  = 'block';
+  document.getElementById('admin-panel-view').style.display  = 'none';
   document.getElementById('admin-pw-input').value = '';
   document.getElementById('admin-error').style.display = 'none';
 }
 
+// ── LOG CRUD ──────────────────────────────────────────
 function saveLog() {
   const title = document.getElementById('log-title').value.trim();
   if (!title) { alert('Title is required.'); return; }
@@ -965,7 +1201,23 @@ function deleteLog(id) {
   renderDashboard();
 }
 
+// ── SECRET TRIPLE CLICK ───────────────────────────────
+let secretClicks = 0;
+let secretTimer  = null;
+
+function handleSecretClick() {
+  secretClicks++;
+  clearTimeout(secretTimer);
+  secretTimer = setTimeout(() => { secretClicks = 0; }, 1500);
+  if (secretClicks >= 3) {
+    secretClicks = 0;
+    showPage('admin');
+  }
+}
+
+// ── INIT ──────────────────────────────────────────────
 document.addEventListener('DOMContentLoaded', () => {
+  applyProgress(getProgress());
   renderDashboard();
   document.addEventListener('keydown', e => {
     if (e.key === 'Escape') {
